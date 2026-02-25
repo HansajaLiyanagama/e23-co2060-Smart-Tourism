@@ -31,7 +31,7 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
     console.log(`=========================================`);
-    console.log(`🚀 SERVER RUNNING ON: http://localhost:${PORT}`);
-    console.log(`✅ HEALTH CHECK: http://localhost:${PORT}/api/status`);
+    console.log(` SERVER RUNNING ON: http://localhost:${PORT}`);
+    console.log(` HEALTH CHECK: http://localhost:${PORT}/api/status`);
     console.log(`=========================================`);
 });
