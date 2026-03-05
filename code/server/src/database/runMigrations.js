@@ -38,6 +38,7 @@ async function runMigrations() {
         
     } catch (error) {
         console.error(' Migration failed! Error details:', error.message);
+        console.error('Code:', error.code);
         process.exit(1); // Exit with a failure code
     }
 }
