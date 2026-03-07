@@ -1,57 +1,57 @@
-const express = require('express');
-const cors = require('cors');
-const placeRoutes = require('./routes/placeRoutes');
-require('dotenv').config();
-
-//1. IMPORT the ROUTES
-const authRoutes = require('./routes/authRoutes');
-const systemRoutes = require('./routes/systemRoutes');
+const express = require("express");
+const path = require("path");
+const { Pool } = require("pg");
 
 const app = express();
+const PORT = 3000;
 
-/** * ARCHITECTURE DECISION: Middleware
- * cors: Allows the React frontend (Port 5173) to connect to this API.
- * express.json(): Parses incoming JSON requests so we can read 'req.body'.
- */
-app.use(cors());
-app.use(express.json());
+// Serve static files
+app.use(express.static(path.join(__dirname, "public")));
 
-/**
- * MODULAR ROUTING SYSTEM
- * Instead of writing 100 routes here, we categorize them.
- * "We use prefixing (e.g., /api/auth) to version our API 
- * and keep the entry point clean and maintainable."
- */
-
-// Connect the Auth module (Signup, Login)
-app.use('/api/auth', authRoutes);
-
-// Connect the System module (Status, Database Health)
-app.use('/api/system', systemRoutes);
-app.use('/api/places', placeRoutes);
-
-/**
- * LEGACY/HEARTBEAT ROUTE
- * Kept for quick browser verification.
- */
-app.get('/api/status', (req, res) => {
-    res.status(200).json({
-        project: "Smart Tourism Management System",
-        batch: "E23",
-        status: "Active",
-        message: "Server Tier is functioning correctly",
-        timestamp: new Date().toISOString()
-    });
+// PostgreSQL Connection
+const pool = new Pool({
+    user: "postgres",
+    host: "localhost",
+    database: "tourism_db",
+    password: "1234", // CHANGE THIS
+    port: 5432,
 });
 
-// Start logic: Uses the PORT from .env or defaults to 5000.
-const PORT = process.env.PORT || 5000;
+// Test DB connection
+pool.connect()
+    .then(() => console.log("Connected to PostgreSQL"))
+    .catch(err => console.error("Database connection error", err));
+
+// ================= ROUTES =================
+
+// By Interest API
+app.get("/api/by-interest/:category", async (req, res) => {
+    try {
+        const result = await pool.query(
+            "SELECT * FROM destinations WHERE category = $1",
+            [req.params.category]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Server error");
+    }
+});
+
+// By Location API
+app.get("/api/by-location/:district", async (req, res) => {
+    try {
+        const result = await pool.query(
+            "SELECT * FROM destinations WHERE district = $1",
+            [req.params.district]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Server error");
+    }
+});
 
 app.listen(PORT, () => {
-    console.log(`=========================================`);
-    console.log(` SERVER RUNNING ON: http://localhost:${PORT}`);
-    console.log(` AUTH ENDPOINT: http://localhost:${PORT}/api/auth/register`);
-    console.log(` SYSTEM STATUS: http://localhost:${PORT}/api/system/status`);
-    console.log(`=========================================`);
+    console.log(`Server running at http://localhost:${PORT}`);
 });
-
