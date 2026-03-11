@@ -45,7 +45,8 @@ A HTML template integrated with the given GitHub repository templates, based on 
 
 ## Introduction
 
-Description of the real world problem and solution, impact
+In recent years, the tourism demographic in Sri Lanka has shifted dramatically, with a majority of visitors now identifying as "Free Independent Travelers" (FITs) who prefer to plan their own trips rather than booking pre-packaged group tours. However, the digital infrastructure supporting them remains heavily fragmented. Tourists currently force-fit their plans using a disjointed web of tools—using Google Maps for routing, WhatsApp for guide negotiations, and TripAdvisor for reviews. This disconnected ecosystem leads to information overload, inefficient routing, and most importantly, a severe trust deficit regarding the safety and fair pricing of local service providers (guides and drivers).
+The **Smart Tourism Management System** is a centralized, web-based decision-support platform designed to solve this fragmentation. Built on the PERN stack (PostgreSQL, Express, React, Node.js), it acts as a "Human-in-the-Loop" ecosystem. It provides tourists with an interactive, drag-and-drop Smart Itinerary Planner that automatically calculates travel times. Simultaneously, it features a secure Marketplace of local service providers whose identities (NIC/Licenses) are manually verified by system administrators, ensuring a scam-free booking experience.
 
 
 ## Solution Architecture
