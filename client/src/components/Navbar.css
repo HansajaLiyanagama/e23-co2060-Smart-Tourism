@@ -1,0 +1,125 @@
+.navbar {
+  background-color: #2c3e50;
+  padding: 1rem 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navbar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: white;
+  transition: color 0.3s ease;
+}
+
+.navbar-logo:hover {
+  color: #3498db;
+}
+
+.navbar-icon {
+  width: 30px;
+  height: 30px;
+}
+
+.nav-menu {
+  display: flex;
+  list-style: none;
+  gap: 2rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #ecf0f1;
+  transition: color 0.3s ease;
+  font-weight: 500;
+}
+
+.nav-link:hover {
+  color: #3498db;
+}
+
+.login-link {
+  background-color: #3498db;
+  padding: 8px 16px;
+  border-radius: 5px;
+  color: white;
+}
+
+.login-link:hover {
+  background-color: #2980b9;
+}
+
+.register-link {
+  background-color: #27ae60;
+  padding: 8px 16px;
+  border-radius: 5px;
+  color: white;
+}
+
+.register-link:hover {
+  background-color: #229954;
+}
+
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 1rem;
+  border-left: 1px solid #34495e;
+}
+
+.user-name {
+  color: #3498db;
+  font-weight: 600;
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logout-btn {
+  background-color: #e74c3c;
+  padding: 8px 16px;
+  border-radius: 5px;
+  color: white;
+}
+
+.logout-btn:hover {
+  background-color: #c0392b;
+}
+
+@media (max-width: 768px) {
+  .nav-menu {
+    gap: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .nav-user {
+    flex-direction: column;
+    border: none;
+    padding: 0;
+    gap: 0.5rem;
+  }
+
+  .user-name {
+    font-size: 0.85rem;
+  }
+}
