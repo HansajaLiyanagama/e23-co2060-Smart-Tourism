@@ -1,18 +1,42 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function Login() {
-  // State variables to hold the user's input
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const navigate = useNavigate(); // Hook to magically change pages
 
-  // Function to handle the form submission
-  const handleLogin = (e) => {
-    e.preventDefault(); // Stops the page from refreshing
+  const handleLogin = async (e) => {
+    e.preventDefault(); 
     
-    // For now, we will just print it to the browser console
-    console.log("Attempting to login with:", email, password);
-    
-    // In the next step, we will send this to your Node.js backend!
+    try {
+      // 1. Send the POST request to your Node.js backend
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      // 2. Check if the login was successful
+      if (response.ok) {
+        // Save the VIP pass (JWT) in the browser's memory
+        localStorage.setItem('token', data.token);
+        
+        alert('Login Successful!');
+        
+        // Teleport the user to the Map page
+        navigate('/home'); 
+      } else {
+        // If wrong password or email
+        alert(data.message || 'Login failed');
+      }
+    } catch (error) {
+      console.error("Error connecting to server:", error);
+    }
   };
 
   return (
