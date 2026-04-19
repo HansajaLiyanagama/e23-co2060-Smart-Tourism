@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+// CRITICAL: Leaflet CSS must be imported for the map to render correctly
+import 'leaflet/dist/leaflet.css';
 
 function Home() {
   const [places, setPlaces] = useState([]);
 
   useEffect(() => {
-    // This function reaches out to your backend to get the places
     const fetchPlaces = async () => {
       try {
         const response = await fetch('http://localhost:5000/api/places');
         const data = await response.json();
         
         if (response.ok) {
-          // Save the array of places into our React state
           setPlaces(data);
         }
       } catch (error) {
@@ -19,31 +20,40 @@ function Home() {
       }
     };
 
-    // Call the function immediately when the component loads
     fetchPlaces();
-  }, []); // The empty array means "only run this once when the page opens"
+  }, []);
 
   return (
-    <div>
-      <h2>Tourist Map</h2>
-      <p>Welcome to the Smart Tourism System!</p>
+    <div style={{ padding: '20px' }}>
+      <h2>Smart Tourism Map</h2>
+      <p>Explore our database of destinations.</p>
       
       <hr />
       
-      <h3>Destinations:</h3>
-      {places.length === 0 ? (
-        <p>Loading places...</p>
-      ) : (
-        <ul>
+      {/* The map container MUST have a defined height, or it will collapse to 0 pixels */}
+      <div style={{ height: '600px', width: '100%', border: '2px solid black' }}>
+        <MapContainer 
+          center={[7.8731, 80.7718]} // Coordinates centering on Sri Lanka
+          zoom={7} 
+          style={{ height: '100%', width: '100%' }}
+        >
+          {/* The visual map layer (OpenStreetMap) */}
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+
+          {/* Loop through the database places and drop a pin for each */}
           {places.map((place) => (
-            // We use the database ID as a unique key for React
-            <li key={place.id}>
-              <strong>{place.name}</strong> <br />
-              Coordinates: {place.latitude}, {place.longitude}
-            </li>
+            <Marker key={place.id} position={[place.latitude, place.longitude]}>
+              <Popup>
+                <strong>{place.name}</strong> <br />
+                Ready for tourists!
+              </Popup>
+            </Marker>
           ))}
-        </ul>
-      )}
+        </MapContainer>
+      </div>
     </div>
   );
 }
