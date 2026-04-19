@@ -35,8 +35,18 @@ function Home() {
   };
 
   useEffect(() => {
+    // Check for the VIP pass
+    const token = localStorage.getItem('token');
+
+    // If no pass is found, kick them to the login page immediately
+    if (!token) {
+      navigate('/');
+      return; // Stop running anymore code
+    }
+
+    // If they do have a pass, load the places
     fetchPlaces(); // Load places when the page first opens
-  }, []);
+  }, [navigate]); // Include navigate as a dipendency
 
   // Function to handle the new form submission
   const handleAddPlace = async (e) => {
