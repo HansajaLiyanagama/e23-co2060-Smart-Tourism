@@ -1,14 +1,25 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 function Home() {
+  const navigate = useNavigate(); // Initialize navigation
   const [places, setPlaces] = useState([]);
   
   // New state variables to hold the form input
   const [name, setName] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
+
+  // New Logout Function
+  const handleLogout = () => {
+    // Remove the VIP pass
+    localStorage.removeItem('token');
+
+    // Teleport back to the login screen
+    navigate('/')
+  };
 
   // We moved fetchPlaces outside the useEffect so we can call it again later!
   const fetchPlaces = async () => {
@@ -78,6 +89,11 @@ function Home() {
   return (
     <div style={{ padding: '20px' }}>
       <h2>Smart Tourism Map</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <button onClick={handleLogout} style={{backgroundColor: 'red', color: 'white', padding: '10px'}}>
+        Logout
+      </button>
+    </div>
       
       {/* THE NEW INPUT FORM */}
       <div style={{ marginBottom: '20px', padding: '15px', border: '1px solid #ccc', borderRadius: '5px' }}>
