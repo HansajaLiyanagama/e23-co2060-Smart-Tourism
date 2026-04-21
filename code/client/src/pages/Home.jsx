@@ -4,24 +4,18 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 function Home() {
-  const navigate = useNavigate(); // Initialize navigation
+  const navigate = useNavigate();
   const [places, setPlaces] = useState([]);
   
-  // New state variables to hold the form input
+  // --- NEW: Filter States ---
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedDistrict, setSelectedDistrict] = useState('All');
+
+  // Form states (kept exactly the same for now)
   const [name, setName] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
 
-  // New Logout Function
-  const handleLogout = () => {
-    // Remove the VIP pass
-    localStorage.removeItem('token');
-
-    // Teleport back to the login screen
-    navigate('/')
-  };
-
-  // We moved fetchPlaces outside the useEffect so we can call it again later!
   const fetchPlaces = async () => {
     try {
       const response = await fetch('http://localhost:5000/api/places');
@@ -35,122 +29,86 @@ function Home() {
   };
 
   useEffect(() => {
-    // Check for the VIP pass
     const token = localStorage.getItem('token');
-
-    // If no pass is found, kick them to the login page immediately
     if (!token) {
       navigate('/');
-      return; // Stop running anymore code
-    }
-
-    // If they do have a pass, load the places
-    fetchPlaces(); // Load places when the page first opens
-  }, [navigate]); // Include navigate as a dipendency
-
-  // Function to handle the new form submission
-  const handleAddPlace = async (e) => {
-    e.preventDefault();
-
-    // 1. Get the VIP pass (JWT) from the browser's memory
-    const token = localStorage.getItem('token');
-
-    if (!token) {
-      alert('You must be logged in to add a place!');
       return;
     }
+    fetchPlaces(); 
+  }, [navigate]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/');
+  };
+
+  const handleAddPlace = async (e) => {
+    // ... (Keep your existing handleAddPlace logic exactly the same)
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    if (!token) return alert('You must be logged in to add a place!');
 
     try {
-      // 2. Send the secure POST request to your Node.js server
       const response = await fetch('http://localhost:5000/api/places', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` // <--- THIS IS THE MAGIC KEY
+          'Authorization': `Bearer ${token}`
         },
-        // We use parseFloat to ensure the coordinates are sent as numbers, not strings
-        body: JSON.stringify({ 
-          name: name, 
-          latitude: parseFloat(latitude), 
-          longitude: parseFloat(longitude) 
-        }),
+        body: JSON.stringify({ name, latitude: parseFloat(latitude), longitude: parseFloat(longitude) }),
       });
-
-      const data = await response.json();
-
       if (response.ok) {
         alert('Place added successfully!');
-        
-        // 3. Clear the form boxes so they are empty again
-        setName('');
-        setLatitude('');
-        setLongitude('');
-        
-        // 4. Re-fetch the database to instantly drop the new pin on the map!
+        setName(''); setLatitude(''); setLongitude('');
         fetchPlaces(); 
-      } else {
-        alert(data.message || 'Failed to add place');
       }
     } catch (error) {
       console.error("Error saving place:", error);
     }
   };
 
+  // --- NEW: Generate unique lists for the dropdowns ---
+  // We use Set() to remove duplicates (e.g., if two places are in 'Galle', 'Galle' only shows once)
+  const categories = ['All', ...new Set(places.map(p => p.category).filter(Boolean))];
+  const districts = ['All', ...new Set(places.map(p => p.district).filter(Boolean))];
+
+  // --- NEW: Filter the places before drawing them on the map ---
+  const filteredPlaces = places.filter(place => {
+    const matchesCategory = selectedCategory === 'All' || place.category === selectedCategory;
+    const matchesDistrict = selectedDistrict === 'All' || place.district === selectedDistrict;
+    return matchesCategory && matchesDistrict;
+  });
+
   return (
     <div style={{ padding: '20px' }}>
-      <h2>Smart Tourism Map</h2>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <button onClick={handleLogout} style={{backgroundColor: 'red', color: 'white', padding: '10px'}}>
-        Logout
-      </button>
-    </div>
+        <h2>Smart Tourism Map</h2>
+        <button onClick={handleLogout} style={{ backgroundColor: 'red', color: 'white', padding: '10px' }}>Logout</button>
+      </div>
       
-      {/* THE NEW INPUT FORM */}
-      <div style={{ marginBottom: '20px', padding: '15px', border: '1px solid #ccc', borderRadius: '5px' }}>
-        <h3>Add a New Destination</h3>
-        <form onSubmit={handleAddPlace}>
-          <input 
-            type="text" 
-            placeholder="Place Name" 
-            value={name} 
-            onChange={(e) => setName(e.target.value)} 
-            required 
-            style={{ marginRight: '10px' }}
-          />
-          <input 
-            type="number" 
-            step="any" 
-            placeholder="Latitude" 
-            value={latitude} 
-            onChange={(e) => setLatitude(e.target.value)} 
-            required 
-            style={{ marginRight: '10px' }}
-          />
-          <input 
-            type="number" 
-            step="any" 
-            placeholder="Longitude" 
-            value={longitude} 
-            onChange={(e) => setLongitude(e.target.value)} 
-            required 
-            style={{ marginRight: '10px' }}
-          />
-          <button type="submit">Drop Pin</button>
-        </form>
+      {/* --- NEW: The Filtering UI --- */}
+      <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f0f8ff', borderRadius: '5px' }}>
+        <h3>Find Destinations by Interest</h3>
+        <label style={{ marginRight: '10px' }}>Category:</label>
+        <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} style={{ marginRight: '20px', padding: '5px' }}>
+          {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+        </select>
+
+        <label style={{ marginRight: '10px' }}>District:</label>
+        <select value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)} style={{ padding: '5px' }}>
+          {districts.map(dist => <option key={dist} value={dist}>{dist}</option>)}
+        </select>
       </div>
 
-      {/* THE MAP */}
+      {/* The Map uses 'filteredPlaces' instead of 'places' now! */}
       <div style={{ height: '600px', width: '100%', border: '2px solid black' }}>
         <MapContainer center={[7.8731, 80.7718]} zoom={7} style={{ height: '100%', width: '100%' }}>
-          <TileLayer
-            attribution='&copy; OpenStreetMap'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          {places.map((place) => (
+          <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          {filteredPlaces.map((place) => (
             <Marker key={place.id} position={[place.latitude, place.longitude]}>
               <Popup>
                 <strong>{place.name}</strong> <br />
-                Ready for tourists!
+                {place.category} | {place.district}
               </Popup>
             </Marker>
           ))}
