@@ -1,18 +1,44 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet-routing-machine';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
+
+// --- NEW: Routing Component ---
+// This component manages the lines on the map
+function RoutingMachine({ waypoints }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map || waypoints.length < 2) return;
+
+    // Initialize the routing control
+    const routingControl = L.Routing.control({
+      waypoints: waypoints.map(p => L.latLng(p.latitude, p.longitude)),
+      lineOptions: {
+        styles: [{ color: '#3f51b5', weight: 4 }]
+      },
+      addWaypoints: false, // Prevents user from dragging the line
+      draggableWaypoints: false,
+      fitSelectedRoutes: true,
+      show: false // We hide the text instructions to keep UI clean
+    }).addTo(map);
+
+    // Cleanup: Remove the lines when the itinerary changes or component unmounts
+    return () => map.removeControl(routingControl);
+  }, [map, waypoints]);
+
+  return null;
+}
 
 function Home() {
   const navigate = useNavigate();
   const [places, setPlaces] = useState([]);
-  
-  // Filter States
+  const [itinerary, setItinerary] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedDistrict, setSelectedDistrict] = useState('All');
-
-  // --- NEW: Itinerary State ---
-  const [itinerary, setItinerary] = useState([]);
 
   const fetchPlaces = async () => {
     try {
@@ -26,33 +52,19 @@ function Home() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/');
-      return;
-    }
+    if (!token) { navigate('/'); return; }
     fetchPlaces(); 
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/');
-  };
-
-  // --- NEW: Itinerary Functions ---
   const addToItinerary = (place) => {
-    // Check if the place is already in the list so we don't add duplicates!
     if (!itinerary.find(p => p.id === place.id)) {
       setItinerary([...itinerary, place]);
     }
   };
 
   const removeFromItinerary = (placeId) => {
-    // Keep everything EXCEPT the one we are removing
     setItinerary(itinerary.filter(p => p.id !== placeId));
   };
-
-  const categories = ['All', ...new Set(places.map(p => p.category).filter(Boolean))];
-  const districts = ['All', ...new Set(places.map(p => p.district).filter(Boolean))];
 
   const filteredPlaces = places.filter(place => {
     const matchesCategory = selectedCategory === 'All' || place.category === selectedCategory;
@@ -63,71 +75,56 @@ function Home() {
   return (
     <div style={{ padding: '20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2>Smart Tourism Map</h2>
-        <button onClick={handleLogout} style={{ backgroundColor: 'red', color: 'white', padding: '10px', cursor: 'pointer' }}>Logout</button>
+        <h2>Smart Tourism Plan</h2>
+        <button onClick={() => { localStorage.removeItem('token'); navigate('/'); }} style={{ backgroundColor: 'red', color: 'white', padding: '10px' }}>Logout</button>
       </div>
       
-      {/* The Filtering UI */}
+      {/* Filters */}
       <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f0f8ff', borderRadius: '5px' }}>
-        <h3>Find Destinations by Interest</h3>
-        <label style={{ marginRight: '10px' }}>Category:</label>
-        <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} style={{ marginRight: '20px', padding: '5px' }}>
-          {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+        <h3>Filters</h3>
+        <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} style={{ marginRight: '10px' }}>
+          {['All', ...new Set(places.map(p => p.category).filter(Boolean))].map(cat => <option key={cat} value={cat}>{cat}</option>)}
         </select>
-
-        <label style={{ marginRight: '10px' }}>District:</label>
-        <select value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)} style={{ padding: '5px' }}>
-          {districts.map(dist => <option key={dist} value={dist}>{dist}</option>)}
+        <select value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)}>
+          {['All', ...new Set(places.map(p => p.district).filter(Boolean))].map(dist => <option key={dist} value={dist}>{dist}</option>)}
         </select>
       </div>
 
-      {/* --- NEW: Side-by-Side Layout for Itinerary and Map --- */}
       <div style={{ display: 'flex', gap: '20px' }}>
-        
-        {/* Left Side: The Itinerary Panel */}
-        <div style={{ width: '30%', padding: '15px', border: '1px solid #ccc', borderRadius: '5px', backgroundColor: '#fff' }}>
-          <h3>Your Trip Plan</h3>
-          {itinerary.length === 0 ? (
-            <p style={{ color: 'gray' }}>Click a map pin to add places to your route.</p>
-          ) : (
-            <ul style={{ paddingLeft: '20px' }}>
-              {itinerary.map((item, index) => (
-                <li key={item.id} style={{ marginBottom: '10px' }}>
-                  <strong>{index + 1}. {item.name}</strong> 
-                  <br/>
-                  <small>{item.district}</small>
-                  <button 
-                    onClick={() => removeFromItinerary(item.id)} 
-                    style={{ marginLeft: '10px', color: 'white', backgroundColor: '#ff4d4d', border: 'none', borderRadius: '3px', cursor: 'pointer' }}>
-                    Remove
-                  </button>
+        {/* Itinerary Panel */}
+        <div style={{ width: '30%', padding: '15px', border: '1px solid #ccc', borderRadius: '5px' }}>
+          <h3>Itinerary</h3>
+          {itinerary.length === 0 ? <p>Add destinations to see the route!</p> : (
+            <ul>
+              {itinerary.map((item, idx) => (
+                <li key={item.id} style={{ marginBottom: '5px' }}>
+                  {idx + 1}. {item.name} 
+                  <button onClick={() => removeFromItinerary(item.id)} style={{ marginLeft: '5px', color: 'red' }}>×</button>
                 </li>
               ))}
             </ul>
           )}
         </div>
 
-        {/* Right Side: The Map */}
-        <div style={{ width: '70%', height: '600px', border: '2px solid black', borderRadius: '5px', overflow: 'hidden' }}>
+        {/* Map Container */}
+        <div style={{ width: '70%', height: '550px', border: '2px solid black' }}>
           <MapContainer center={[7.8731, 80.7718]} zoom={7} style={{ height: '100%', width: '100%' }}>
-            <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            
+            {/* Draw markers for all filtered places */}
             {filteredPlaces.map((place) => (
               <Marker key={place.id} position={[place.latitude, place.longitude]}>
                 <Popup>
-                  <strong>{place.name}</strong> <br />
-                  {place.category} | {place.district} <br />
-                  {/* --- NEW: Add to Itinerary Button inside the map popup --- */}
-                  <button 
-                    onClick={() => addToItinerary(place)}
-                    style={{ marginTop: '8px', padding: '5px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}>
-                    + Add to Trip
-                  </button>
+                  <strong>{place.name}</strong><br/>
+                  <button onClick={() => addToItinerary(place)}>Add to Route</button>
                 </Popup>
               </Marker>
             ))}
+
+            {/* --- THE ROUTE LINES COMPONENT --- */}
+            <RoutingMachine waypoints={itinerary} />
           </MapContainer>
         </div>
-
       </div>
     </div>
   );
