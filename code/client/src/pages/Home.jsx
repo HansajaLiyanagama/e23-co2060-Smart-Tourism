@@ -6,29 +6,38 @@ import 'leaflet-routing-machine';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
 
-// --- NEW: Routing Component ---
-// This component manages the lines on the map
-function RoutingMachine({ waypoints }) {
+// --- UPDATED: Routing Component now accepts setTotalDistance ---
+function RoutingMachine({ waypoints, setTotalDistance }) {
   const map = useMap();
 
   useEffect(() => {
-    if (!map || waypoints.length < 2) return;
+    if (!map) return;
 
-    // Initialize the routing control
+    // If less than 2 points, distance is 0 and no route is drawn
+    if (waypoints.length < 2) {
+      setTotalDistance(0);
+      return;
+    }
+
     const routingControl = L.Routing.control({
       waypoints: waypoints.map(p => L.latLng(p.latitude, p.longitude)),
-      lineOptions: {
-        styles: [{ color: '#3f51b5', weight: 4 }]
-      },
-      addWaypoints: false, // Prevents user from dragging the line
+      lineOptions: { styles: [{ color: '#3f51b5', weight: 4 }] },
+      addWaypoints: false, 
       draggableWaypoints: false,
       fitSelectedRoutes: true,
-      show: false // We hide the text instructions to keep UI clean
+      show: false 
     }).addTo(map);
 
-    // Cleanup: Remove the lines when the itinerary changes or component unmounts
+    // --- NEW: Event Listener to catch the distance ---
+    routingControl.on('routesfound', function(e) {
+      const routes = e.routes;
+      const summary = routes[0].summary; // Gets the best route
+      const distanceKm = (summary.totalDistance / 1000).toFixed(1); // Convert meters to km
+      setTotalDistance(distanceKm);
+    });
+
     return () => map.removeControl(routingControl);
-  }, [map, waypoints]);
+  }, [map, waypoints, setTotalDistance]);
 
   return null;
 }
@@ -39,6 +48,9 @@ function Home() {
   const [itinerary, setItinerary] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedDistrict, setSelectedDistrict] = useState('All');
+  
+  // --- NEW: Distance State ---
+  const [totalDistance, setTotalDistance] = useState(0);
 
   const fetchPlaces = async () => {
     try {
@@ -79,7 +91,6 @@ function Home() {
         <button onClick={() => { localStorage.removeItem('token'); navigate('/'); }} style={{ backgroundColor: 'red', color: 'white', padding: '10px' }}>Logout</button>
       </div>
       
-      {/* Filters */}
       <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f0f8ff', borderRadius: '5px' }}>
         <h3>Filters</h3>
         <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} style={{ marginRight: '10px' }}>
@@ -92,10 +103,10 @@ function Home() {
 
       <div style={{ display: 'flex', gap: '20px' }}>
         {/* Itinerary Panel */}
-        <div style={{ width: '30%', padding: '15px', border: '1px solid #ccc', borderRadius: '5px' }}>
+        <div style={{ width: '30%', padding: '15px', border: '1px solid #ccc', borderRadius: '5px', display: 'flex', flexDirection: 'column' }}>
           <h3>Itinerary</h3>
           {itinerary.length === 0 ? <p>Add destinations to see the route!</p> : (
-            <ul>
+            <ul style={{ flexGrow: 1 }}>
               {itinerary.map((item, idx) => (
                 <li key={item.id} style={{ marginBottom: '5px' }}>
                   {idx + 1}. {item.name} 
@@ -104,6 +115,14 @@ function Home() {
               ))}
             </ul>
           )}
+          
+          {/* --- NEW: Display the Distance --- */}
+          {totalDistance > 0 && (
+            <div style={{ marginTop: '20px', padding: '10px', backgroundColor: '#e6ffe6', border: '1px solid #4CAF50', borderRadius: '5px', textAlign: 'center' }}>
+              <strong>Total Driving Distance:</strong> <br/>
+              <span style={{ fontSize: '1.2em', color: '#2e7d32' }}>{totalDistance} km</span>
+            </div>
+          )}
         </div>
 
         {/* Map Container */}
@@ -111,7 +130,6 @@ function Home() {
           <MapContainer center={[7.8731, 80.7718]} zoom={7} style={{ height: '100%', width: '100%' }}>
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             
-            {/* Draw markers for all filtered places */}
             {filteredPlaces.map((place) => (
               <Marker key={place.id} position={[place.latitude, place.longitude]}>
                 <Popup>
@@ -121,8 +139,8 @@ function Home() {
               </Marker>
             ))}
 
-            {/* --- THE ROUTE LINES COMPONENT --- */}
-            <RoutingMachine waypoints={itinerary} />
+            {/* Pass the state setter to the routing machine */}
+            <RoutingMachine waypoints={itinerary} setTotalDistance={setTotalDistance} />
           </MapContainer>
         </div>
       </div>
