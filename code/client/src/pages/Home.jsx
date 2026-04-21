@@ -6,14 +6,11 @@ import 'leaflet-routing-machine';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
 
-// --- UPDATED: Routing Component now accepts setTotalDistance ---
 function RoutingMachine({ waypoints, setTotalDistance }) {
   const map = useMap();
 
   useEffect(() => {
     if (!map) return;
-
-    // If less than 2 points, distance is 0 and no route is drawn
     if (waypoints.length < 2) {
       setTotalDistance(0);
       return;
@@ -28,11 +25,8 @@ function RoutingMachine({ waypoints, setTotalDistance }) {
       show: false 
     }).addTo(map);
 
-    // --- NEW: Event Listener to catch the distance ---
     routingControl.on('routesfound', function(e) {
-      const routes = e.routes;
-      const summary = routes[0].summary; // Gets the best route
-      const distanceKm = (summary.totalDistance / 1000).toFixed(1); // Convert meters to km
+      const distanceKm = (e.routes[0].summary.totalDistance / 1000).toFixed(1);
       setTotalDistance(distanceKm);
     });
 
@@ -48,9 +42,10 @@ function Home() {
   const [itinerary, setItinerary] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedDistrict, setSelectedDistrict] = useState('All');
-  
-  // --- NEW: Distance State ---
   const [totalDistance, setTotalDistance] = useState(0);
+  
+  // --- NEW: Suggestions State ---
+  const [suggestions, setSuggestions] = useState([]);
 
   const fetchPlaces = async () => {
     try {
@@ -67,6 +62,49 @@ function Home() {
     if (!token) { navigate('/'); return; }
     fetchPlaces(); 
   }, [navigate]);
+
+  // --- NEW: Smart Overpass API Suggestions ---
+  useEffect(() => {
+    if (itinerary.length === 0) {
+      setSuggestions([]); // Clear suggestions if itinerary is empty
+      return;
+    }
+
+    const fetchSuggestions = async () => {
+      // Get the last place added to the itinerary
+      const lastPlace = itinerary[itinerary.length - 1];
+      
+      try {
+        // Query OSM for "tourism" nodes within a 15,000 meter (15km) radius
+        const query = `
+          [out:json];
+          node["tourism"](around:15000,${lastPlace.latitude},${lastPlace.longitude});
+          out 5;
+        `;
+        const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        // Format the OSM data into our place object format
+        const newSuggestions = data.elements
+          .filter(el => el.tags && el.tags.name) // Only keep places that actually have names
+          .map(el => ({
+            id: `osm-${el.id}`, // Create a unique ID
+            name: el.tags.name,
+            latitude: el.lat,
+            longitude: el.lon,
+            category: 'Smart Suggestion',
+            district: 'Nearby'
+          }));
+          
+        setSuggestions(newSuggestions);
+      } catch (error) {
+        console.error("Error fetching OSM suggestions:", error);
+      }
+    };
+
+    fetchSuggestions();
+  }, [itinerary]); // This runs every time the itinerary array changes!
 
   const addToItinerary = (place) => {
     if (!itinerary.find(p => p.id === place.id)) {
@@ -102,11 +140,10 @@ function Home() {
       </div>
 
       <div style={{ display: 'flex', gap: '20px' }}>
-        {/* Itinerary Panel */}
         <div style={{ width: '30%', padding: '15px', border: '1px solid #ccc', borderRadius: '5px', display: 'flex', flexDirection: 'column' }}>
           <h3>Itinerary</h3>
           {itinerary.length === 0 ? <p>Add destinations to see the route!</p> : (
-            <ul style={{ flexGrow: 1 }}>
+            <ul>
               {itinerary.map((item, idx) => (
                 <li key={item.id} style={{ marginBottom: '5px' }}>
                   {idx + 1}. {item.name} 
@@ -116,20 +153,38 @@ function Home() {
             </ul>
           )}
           
-          {/* --- NEW: Display the Distance --- */}
           {totalDistance > 0 && (
-            <div style={{ marginTop: '20px', padding: '10px', backgroundColor: '#e6ffe6', border: '1px solid #4CAF50', borderRadius: '5px', textAlign: 'center' }}>
+            <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#e6ffe6', border: '1px solid #4CAF50', borderRadius: '5px', textAlign: 'center' }}>
               <strong>Total Driving Distance:</strong> <br/>
               <span style={{ fontSize: '1.2em', color: '#2e7d32' }}>{totalDistance} km</span>
             </div>
           )}
+
+          {/* --- NEW: Smart Suggestions UI --- */}
+          {suggestions.length > 0 && (
+            <div style={{ marginTop: '20px', padding: '10px', backgroundColor: '#fff3cd', border: '1px solid #ffeeba', borderRadius: '5px' }}>
+              <h4 style={{ margin: '0 0 10px 0' }}>💡 Suggested Nearby:</h4>
+              <ul style={{ paddingLeft: '20px', margin: 0 }}>
+                {suggestions.map(sug => (
+                  <li key={sug.id} style={{ marginBottom: '8px', fontSize: '0.9em' }}>
+                    {sug.name}
+                    <button 
+                      onClick={() => addToItinerary(sug)}
+                      style={{ marginLeft: '10px', fontSize: '0.8em', padding: '2px 5px', backgroundColor: '#ffc107', border: 'none', borderRadius: '3px', cursor: 'pointer' }}>
+                      + Add
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
-        {/* Map Container */}
         <div style={{ width: '70%', height: '550px', border: '2px solid black' }}>
           <MapContainer center={[7.8731, 80.7718]} zoom={7} style={{ height: '100%', width: '100%' }}>
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             
+            {/* Draw standard places */}
             {filteredPlaces.map((place) => (
               <Marker key={place.id} position={[place.latitude, place.longitude]}>
                 <Popup>
@@ -139,7 +194,17 @@ function Home() {
               </Marker>
             ))}
 
-            {/* Pass the state setter to the routing machine */}
+            {/* Draw suggested places (as temporary pins on the map too!) */}
+            {suggestions.map((sug) => (
+              <Marker key={sug.id} position={[sug.latitude, sug.longitude]} opacity={0.6}>
+                <Popup>
+                  <strong>💡 {sug.name}</strong><br/>
+                  <em>Suggested Nearby</em><br/>
+                  <button onClick={() => addToItinerary(sug)}>Add to Route</button>
+                </Popup>
+              </Marker>
+            ))}
+
             <RoutingMachine waypoints={itinerary} setTotalDistance={setTotalDistance} />
           </MapContainer>
         </div>
