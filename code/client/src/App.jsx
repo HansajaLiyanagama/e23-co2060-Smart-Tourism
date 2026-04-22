@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
 import Home from './pages/Home';
+import Register from './pages/Register';
 
 function App() {
   return (
@@ -11,6 +12,8 @@ function App() {
         
         {/* The /home route (http://localhost:5173/home) will show the Map page */}
         <Route path="/home" element={<Home />} />
+        {/*This path will show the registration page*/}
+        <Route path="/register" element={<Register />} />
       </Routes>
     </BrowserRouter>
   );
