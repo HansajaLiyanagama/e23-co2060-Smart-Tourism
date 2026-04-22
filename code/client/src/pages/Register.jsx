@@ -15,7 +15,7 @@ function Register() {
       const response = await fetch('http://localhost:5000/api/auth/register', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role }),
+        body: JSON.stringify({ fullName, email, password, role }),
       });
 
       const data = await response.json();
@@ -37,6 +37,12 @@ function Register() {
         <h2 style={{ textAlign: 'center', color: '#333' }}>Create an Account</h2>
         
         {error && <p style={{ color: 'red', textAlign: 'center', fontSize: '0.9em' }}>{error}</p>}
+
+        {/*Full Name Input*/}
+        <div style={{ marginBottom: '15px' }}>
+          <label style={{ fontWeight: 'bold' }}>Full Name:</label> <br />
+          <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px', boxSizing: 'border-box' }} />
+        </div>
         
         <div style={{ marginBottom: '15px' }}>
           <label style={{ fontWeight: 'bold' }}>Email:</label> <br />
