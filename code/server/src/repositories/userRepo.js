@@ -23,10 +23,10 @@ const createUser = async (fullName, email, passwordHash, role) => {
     // 2. Create the corresponding empty profile based on the role
     if (assignedRole === 'tourist') {
         const touristQuery = `INSERT INTO tourist_profiles (user_id, full_name) VALUES ($1, $2)`;
-        await db.query(touristQuery, [newUser.id]);
+        await db.query(touristQuery, [newUser.id, fullName]);
     } else if (assignedRole === 'guide') {
         const guideQuery = `INSERT INTO guide_profiles (user_id, full_name) VALUES ($1, $2)`;
-        await db.query(guideQuery, [newUser.id]);
+        await db.query(guideQuery, [newUser.id, fullName]);
     }
 
     return newUser; // Returns the newly created user to the controller
