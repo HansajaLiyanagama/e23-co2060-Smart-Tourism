@@ -25,11 +25,16 @@ function Login() {
       if (response.ok) {
         // Save the VIP pass (JWT) in the browser's memory
         localStorage.setItem('token', data.token);
+        localStorage.setItem('userRole', data.user.role);
         
         alert('Login Successful!');
         
-        // Teleport the user to the Map page
-        navigate('/home'); 
+        // The traffic Controller: Teleport them based on their specific role
+        if (data.user.role === 'guide') {
+          navigate('/guide-dashboard');
+        } else {
+          navigate('/tourist-dashboard'); 
+        }
       } else {
         // If wrong password or email
         alert(data.message || 'Login failed');
