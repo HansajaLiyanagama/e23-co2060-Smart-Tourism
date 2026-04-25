@@ -6,6 +6,7 @@ require('dotenv').config();
 //1. IMPORT the ROUTES
 const authRoutes = require('./routes/authRoutes');
 const systemRoutes = require('./routes/systemRoutes');
+const guideRoutes = require('./routes/guideRoutes');    
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use('/api/auth', authRoutes);
 // Connect the System module (Status, Database Health)
 app.use('/api/system', systemRoutes);
 app.use('/api/places', placeRoutes);
+app.use('/api/guide', guideRoutes);
 
 /**
  * LEGACY/HEARTBEAT ROUTE
