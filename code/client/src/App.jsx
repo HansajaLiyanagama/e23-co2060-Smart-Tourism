@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import Register from './pages/Register';
+import TouristDashboard from './pages/TouristDashboard';
+import GuideDashboard from './pages/GuideDashboard';
 
 function App() {
   return (
@@ -14,6 +16,8 @@ function App() {
         <Route path="/home" element={<Home />} />
         {/*This path will show the registration page*/}
         <Route path="/register" element={<Register />} />
+        <Route path="/tourist-dashboard" element={<TouristDashboard />} />
+        <Route path="/guide-dashboard" element={<GuideDashboard />} />
       </Routes>
     </BrowserRouter>
   );
