@@ -2,8 +2,13 @@ const express = require('express');
 const router = express.Router();
 const guideController = require('../controllers/guideController');
 
-// Import middleware
+// Import middleware as verifyToken
 const verifyToken = require('../middleware/authMiddleware');
-router.put('/profile', authMiddleware, guideController.updateProfile);
+
+// Use verifyToken here!
+router.put('/profile', verifyToken, guideController.updateProfile);
+
+// New Route: Fetch all guides
+router.get('/all', verifyToken, guideController.getGuides);
 
 module.exports = router;

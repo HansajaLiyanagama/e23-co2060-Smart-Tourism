@@ -7,7 +7,8 @@ function Register() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('tourist'); 
+  const [role, setRole] = useState('tourist');
+  const [nationality, setNationality] = useState(''); 
   const [error, setError] = useState('');
 
   const handleRegister = async (e) => {
@@ -17,7 +18,7 @@ function Register() {
       const response = await fetch('http://localhost:5000/api/auth/register', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName, email, password, role }),
+        body: JSON.stringify({ fullName, email, password, role, nationality }),
       });
 
       const data = await response.json();
@@ -63,6 +64,19 @@ function Register() {
             <option value="guide">Tour Guide</option>
           </select>
         </div>
+
+      {role === 'tourist' && (
+        <div style={{ marginBottom: '15px' }}>
+          <label>Nationality: </label>
+          <input 
+            type="text" 
+            value={nationality} 
+            onChange={(e) => setNationality(e.target.value)} 
+            placeholder="e.g. American, British, etc."
+            required={role === 'tourist'} 
+          />
+        </div>
+      )}
 
         <button type="submit" style={{ width: '100%', padding: '10px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '1em' }}>
           Sign Up
