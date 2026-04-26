@@ -1,54 +1,53 @@
 import { useState, useEffect } from 'react';
 
 function TouristDashboard() {
-  // State for the trip form
   const [title, setTitle] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [message, setMessage] = useState('');
-
-  // NEW: State to remember the newly created trip's ID
   const [currentItineraryId, setCurrentItineraryId] = useState(null);
 
-  // State for the guides list
   const [guides, setGuides] = useState([]);
   const [fetchMessage, setFetchMessage] = useState('');
 
-  // Fetch guides on load
+  // NEW: State for My Bookings
+  const [myRequests, setMyRequests] = useState([]);
+
+  // Fetch guides AND my bookings on load
   useEffect(() => {
-    const fetchGuides = async () => {
+    const fetchData = async () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
+      // Fetch Guides
       try {
-        const response = await fetch('http://localhost:5000/api/guide/all', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        const guidesRes = await fetch('http://localhost:5000/api/guide/all', {
+          headers: { 'Authorization': `Bearer ${token}` }
         });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          setGuides(data.guides);
-        } else {
-          setFetchMessage(`❌ Error: ${data.error}`);
-        }
+        const guidesData = await guidesRes.json();
+        if (guidesRes.ok) setGuides(guidesData.guides);
       } catch (error) {
         console.error("Error fetching guides:", error);
-        setFetchMessage('❌ Failed to load guides from server.');
+      }
+
+      // NEW: Fetch My Bookings
+      try {
+        const requestsRes = await fetch('http://localhost:5000/api/requests/tourist', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const requestsData = await requestsRes.json();
+        if (requestsRes.ok) setMyRequests(requestsData.requests);
+      } catch (error) {
+        console.error("Error fetching my requests:", error);
       }
     };
 
-    fetchGuides();
+    fetchData();
   }, []);
 
-  // Handle creating the trip
   const handleCreateTrip = async (e) => {
     e.preventDefault();
     setMessage('Saving trip...');
-
     const token = localStorage.getItem('token');
     if (!token) return setMessage('❌ Error: You are not logged in!');
 
@@ -63,15 +62,10 @@ function TouristDashboard() {
       });
 
       const data = await response.json();
-
       if (response.ok) {
         setMessage('✅ Trip saved! You can now request a guide below.');
-        
-        // Save the newly created itinerary ID so we can use it for bookings
-        // (Fallback to data.id just in case your backend sends it directly)
         const newId = data.itinerary ? data.itinerary.id : data.id;
         setCurrentItineraryId(newId);
-
         setTitle('');
         setStartDate('');
         setEndDate('');
@@ -84,7 +78,6 @@ function TouristDashboard() {
     }
   };
 
-  // NEW: Handle sending the request to the guide
   const handleRequestGuide = async (guideId) => {
     if (!currentItineraryId) {
       alert('⚠️ Please create a trip first before requesting a guide!');
@@ -105,11 +98,12 @@ function TouristDashboard() {
         })
       });
 
-      const data = await response.json();
-
       if (response.ok) {
         alert('✅ Request sent to the guide successfully!');
+        // Reload the page to refresh the "My Bookings" list
+        window.location.reload(); 
       } else {
+        const data = await response.json();
         alert(`❌ Error: ${data.error}`);
       }
     } catch (error) {
@@ -130,7 +124,7 @@ function TouristDashboard() {
         <form onSubmit={handleCreateTrip}>
           <div style={{ marginBottom: '15px' }}>
             <label>Trip Title:</label> <br />
-            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px' }} placeholder="e.g., Summer Trip to Kandy" required />
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '5px' }} required />
           </div>
           <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
             <div style={{ flex: 1 }}>
@@ -148,11 +142,38 @@ function TouristDashboard() {
         </form>
       </div>
 
+      {/* NEW: My Bookings Section */}
+      <div style={{ marginBottom: '40px' }}>
+        <h3>🏷️ My Bookings</h3>
+        {myRequests.length === 0 ? (
+          <p>You haven't requested any guides yet.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {myRequests.map((req) => (
+              <div key={req.request_id} style={{ padding: '15px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h4 style={{ margin: '0 0 5px 0' }}>{req.trip_title}</h4>
+                  <p style={{ margin: '0', fontSize: '0.9em' }}><strong>Guide:</strong> {req.guide_name}</p>
+                </div>
+                <div style={{ 
+                  padding: '5px 10px', 
+                  borderRadius: '15px', 
+                  fontWeight: 'bold', 
+                  color: '#fff',
+                  backgroundColor: req.status === 'pending' ? 'orange' : req.status === 'accepted' ? 'green' : 'red' 
+                }}>
+                  {req.status.toUpperCase()}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* 2. Available Guides Section */}
       <div>
         <h3>🗺️ Available Tour Guides</h3>
         {fetchMessage && <p>{fetchMessage}</p>}
-        
         {guides.length === 0 && !fetchMessage ? (
           <p>No guides available right now.</p>
         ) : (
@@ -164,16 +185,12 @@ function TouristDashboard() {
                 <p style={{ margin: '0 0 5px 0' }}><strong>License:</strong> {guide.license_number || "N/A"}</p>
                 <p style={{ margin: '0 0 15px 0' }}><strong>Rate:</strong> ${guide.hourly_rate}/hr</p>
                 
-                {/* NEW: Updated onClick handler */}
                 <button 
                   onClick={() => handleRequestGuide(guide.user_id)}
                   style={{ 
-                    width: '100%', 
-                    padding: '8px', 
+                    width: '100%', padding: '8px', 
                     backgroundColor: currentItineraryId ? '#007BFF' : '#ccc', 
-                    color: 'white', 
-                    border: 'none', 
-                    borderRadius: '4px', 
+                    color: 'white', border: 'none', borderRadius: '4px', 
                     cursor: currentItineraryId ? 'pointer' : 'not-allowed' 
                   }}
                   title={!currentItineraryId ? "Create a trip first!" : "Request this guide"}
