@@ -4,7 +4,7 @@ const db = require('../config/db');
 const updateGuideProfile = async (userId, bio, licenseNumber, hourlyRate) => {
     const query = `
         UPDATE guide_profiles 
-        SET bio = $1, license_number = $2, hourly_rate = $3, updated_at = CURRENT_TIMESTAMP
+        SET bio = $1, license_number = $2, hourly_rate = $3 
         WHERE user_id = $4
         RETURNING *;
     `;
