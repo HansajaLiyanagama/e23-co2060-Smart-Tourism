@@ -7,6 +7,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/authRoutes');
 const systemRoutes = require('./routes/systemRoutes');
 const guideRoutes = require('./routes/guideRoutes');    
+const itineraryRoutes = require('./routes/itineraryRoutes');
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/places', placeRoutes);
 app.use('/api/guide', guideRoutes);
+app.use('/api/itineraries', itineraryRoutes);
 
 /**
  * LEGACY/HEARTBEAT ROUTE
