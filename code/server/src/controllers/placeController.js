@@ -11,10 +11,19 @@ const getPlaces = async (req, res) => {
 
 const addPlace = async (req, res) => {
     try {
-        // We now destructure latitude and longitude instead of location
-        const { name, description, latitude, longitude, image_url } = req.body;
+        // NEW: Destructure category and district as well
+        const { name, description, latitude, longitude, image_url, category, district } = req.body;
         
-        const newPlace = await placeRepo.createPlace(name, description, latitude, longitude, image_url);
+        // Pass the new fields to the repo
+        const newPlace = await placeRepo.createPlace(
+            name, 
+            description, 
+            latitude, 
+            longitude, 
+            image_url, 
+            category, 
+            district
+        );
         res.status(201).json(newPlace);
     } catch (error) {
         console.error(error);
