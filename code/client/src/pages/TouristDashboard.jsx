@@ -1,29 +1,36 @@
 import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// --- Leaflet Map Click Handler ---
-function MapClickHandler({ onMapClick }) {
-  useMapEvents({
-    click(e) {
-      onMapClick(e.latlng);
-    },
-  });
-  return null;
-}
+// Fix for missing Leaflet marker icons in React
+import L from 'leaflet';
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+let DefaultIcon = L.icon({
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
 
 function TouristDashboard() {
+  // Trip Creation State
   const [title, setTitle] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [message, setMessage] = useState('');
   const [currentItineraryId, setCurrentItineraryId] = useState(null);
 
+  // Dashboard Data State
   const [guides, setGuides] = useState([]);
-  const [fetchMessage, setFetchMessage] = useState('');
   const [myRequests, setMyRequests] = useState([]);
-
-  // NEW: State to hold the locations the tourist clicks on the map
+  const [fetchMessage, setFetchMessage] = useState('');
+  
+  // Map & Places State
+  const [allPlaces, setAllPlaces] = useState([]);
+  const [filteredPlaces, setFilteredPlaces] = useState([]);
+  const [activeCategory, setActiveCategory] = useState('all');
   const [selectedLocations, setSelectedLocations] = useState([]);
 
   useEffect(() => {
@@ -31,38 +38,77 @@ function TouristDashboard() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
+      // 1. Fetch Places for the Map (Updated route!)
       try {
-        const guidesRes = await fetch('http://localhost:5000/api/guide/all', { headers: { 'Authorization': `Bearer ${token}` }});
+        const placesRes = await fetch('http://localhost:5000/api/places');
+        const placesData = await placesRes.json();
+        if (placesRes.ok) {
+          setAllPlaces(placesData);
+          setFilteredPlaces(placesData);
+        }
+      } catch (error) { 
+        console.error("Error fetching places:", error); 
+      }
+
+      // 2. Fetch Guides
+      try {
+        const guidesRes = await fetch('http://localhost:5000/api/guide/all', { 
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
         const guidesData = await guidesRes.json();
         if (guidesRes.ok) setGuides(guidesData.guides);
-      } catch (error) { console.error("Error fetching guides:", error); }
+      } catch (error) { 
+        console.error("Error fetching guides:", error); 
+        setFetchMessage('Could not load guides.');
+      }
 
+      // 3. Fetch My Bookings
       try {
-        const requestsRes = await fetch('http://localhost:5000/api/requests/tourist', { headers: { 'Authorization': `Bearer ${token}` }});
+        const requestsRes = await fetch('http://localhost:5000/api/requests/tourist', { 
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
         const requestsData = await requestsRes.json();
         if (requestsRes.ok) setMyRequests(requestsData.requests);
-      } catch (error) { console.error("Error fetching my requests:", error); }
+      } catch (error) { 
+        console.error("Error fetching my requests:", error); 
+      }
     };
+    
     fetchData();
   }, []);
 
-  // Handle map clicks to drop pins
-  const handleMapClick = (latlng) => {
-    const newLocation = {
-      lat: latlng.lat,
-      lng: latlng.lng,
-      label: `Stop ${selectedLocations.length + 1}`
-    };
-    setSelectedLocations([...selectedLocations, newLocation]);
+  // Handle Category Filtering
+  const handleFilter = (category) => {
+    setActiveCategory(category);
+    if (category === 'all') {
+      setFilteredPlaces(allPlaces);
+    } else {
+      setFilteredPlaces(allPlaces.filter(place => place.category === category));
+    }
   };
 
+  // Map Interaction: Add Place
+  const handleAddLocation = (place) => {
+    if (!selectedLocations.some(loc => loc.id === place.id)) {
+      setSelectedLocations([...selectedLocations, place]);
+    }
+  };
+
+  // Map Interaction: Remove Place
+  const handleRemoveLocation = (placeId) => {
+    setSelectedLocations(selectedLocations.filter(loc => loc.id !== placeId));
+  };
+
+  // Form Submit: Create Trip
   const handleCreateTrip = async (e) => {
     e.preventDefault();
     setMessage('Saving trip...');
     const token = localStorage.getItem('token');
     if (!token) return setMessage('❌ Error: You are not logged in!');
 
-    // We will later update the backend to accept these selectedLocations too!
+    // Pass the selected place IDs to the backend
+    const placeIds = selectedLocations.map(loc => loc.id);
+
     try {
       const response = await fetch('http://localhost:5000/api/itineraries/create', {
         method: 'POST',
@@ -70,7 +116,7 @@ function TouristDashboard() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}` 
         },
-        body: JSON.stringify({ title, startDate, endDate, locations: selectedLocations }),
+        body: JSON.stringify({ title, startDate, endDate, places: placeIds }),
       });
 
       const data = await response.json();
@@ -81,7 +127,7 @@ function TouristDashboard() {
         setTitle('');
         setStartDate('');
         setEndDate('');
-        // Keep the map pins visible so they know what they just planned!
+        setSelectedLocations([]); // Clear selections after saving
       } else {
         setMessage(`❌ Error: ${data.error}`);
       }
@@ -91,6 +137,7 @@ function TouristDashboard() {
     }
   };
 
+  // Request a Guide
   const handleRequestGuide = async (guideId) => {
     if (!currentItineraryId) {
       alert('⚠️ Please create a trip first before requesting a guide!');
@@ -101,7 +148,10 @@ function TouristDashboard() {
     try {
       const response = await fetch('http://localhost:5000/api/requests/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${token}` 
+        },
         body: JSON.stringify({ itineraryId: currentItineraryId, guideId: guideId })
       });
 
@@ -126,34 +176,67 @@ function TouristDashboard() {
       <div style={{ padding: '20px', border: '1px solid #ccc', borderRadius: '8px', marginBottom: '40px', backgroundColor: '#f9f9f9' }}>
         <h3 style={{ marginTop: 0 }}>Plan a New Trip</h3>
         
-        {/* THE MAP IS BACK! */}
+        {/* MAP & FILTERS */}
         <div style={{ marginBottom: '20px' }}>
-          <p style={{ margin: '0 0 10px 0', fontSize: '0.9em', color: '#555' }}>
-            <em>Click on the map to add destinations to your itinerary!</em>
-          </p>
-          <div style={{ height: '300px', width: '100%', borderRadius: '8px', overflow: 'hidden', border: '1px solid #ddd' }}>
+          
+          {/* Category Filter Buttons */}
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+            {['all', 'surfing', 'culture', 'wildlife'].map(cat => (
+              <button 
+                key={cat} 
+                onClick={() => handleFilter(cat)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  border: '1px solid #007BFF',
+                  backgroundColor: activeCategory === cat ? '#007BFF' : 'white',
+                  color: activeCategory === cat ? 'white' : '#007BFF',
+                  cursor: 'pointer',
+                  textTransform: 'capitalize',
+                  fontWeight: 'bold'
+                }}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ height: '350px', width: '100%', borderRadius: '8px', overflow: 'hidden', border: '1px solid #ddd' }}>
             <MapContainer center={[7.8731, 80.7718]} zoom={7} style={{ height: '100%', width: '100%' }}>
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              />
-              <MapClickHandler onMapClick={handleMapClick} />
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               
-              {selectedLocations.map((loc, index) => (
-                <Marker key={index} position={[loc.lat, loc.lng]}>
-                  <Popup>{loc.label}</Popup>
+              {filteredPlaces.map((place) => (
+                <Marker key={place.id} position={[place.latitude, place.longitude]}>
+                  <Popup>
+                    <div style={{ textAlign: 'center' }}>
+                      <h4 style={{ margin: '0 0 5px 0' }}>{place.name}</h4>
+                      <p style={{ margin: '0 0 10px 0', fontSize: '0.85em', color: '#555' }}>{place.description}</p>
+                      <button 
+                        onClick={() => handleAddLocation(place)}
+                        style={{ padding: '5px 10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                      >
+                        Add to Trip
+                      </button>
+                    </div>
+                  </Popup>
                 </Marker>
               ))}
             </MapContainer>
           </div>
           
-          {/* Show the selected coordinates as text (optional, but helpful for debugging) */}
+          {/* Selected Locations List */}
           {selectedLocations.length > 0 && (
-            <ul style={{ fontSize: '0.85em', color: '#666' }}>
-              {selectedLocations.map((loc, i) => (
-                <li key={i}>{loc.label}: [{loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}]</li>
-              ))}
-            </ul>
+            <div style={{ marginTop: '15px', padding: '10px', backgroundColor: '#e9ecef', borderRadius: '5px' }}>
+              <strong>📍 Destinations Selected:</strong>
+              <ul style={{ margin: '5px 0 0 0', paddingLeft: '20px' }}>
+                {selectedLocations.map(loc => (
+                  <li key={loc.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                    {loc.name} 
+                    <span onClick={() => handleRemoveLocation(loc.id)} style={{ color: 'red', cursor: 'pointer', fontWeight: 'bold' }}>✖</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
 
@@ -175,12 +258,12 @@ function TouristDashboard() {
             </div>
           </div>
           <button type="submit" style={{ width: '100%', padding: '10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-            Create Itinerary
+            Save Trip & Locations
           </button>
         </form>
       </div>
 
-      {/* My Bookings Section */}
+      {/* 2. My Bookings Section */}
       <div style={{ marginBottom: '40px' }}>
         <h3>🏷️ My Bookings</h3>
         {myRequests.length === 0 ? (
@@ -193,7 +276,13 @@ function TouristDashboard() {
                   <h4 style={{ margin: '0 0 5px 0' }}>{req.trip_title}</h4>
                   <p style={{ margin: '0', fontSize: '0.9em' }}><strong>Guide:</strong> {req.guide_name}</p>
                 </div>
-                <div style={{ padding: '5px 10px', borderRadius: '15px', fontWeight: 'bold', color: '#fff', backgroundColor: req.status === 'pending' ? 'orange' : req.status === 'accepted' ? 'green' : 'red' }}>
+                <div style={{ 
+                  padding: '5px 10px', 
+                  borderRadius: '15px', 
+                  fontWeight: 'bold', 
+                  color: '#fff',
+                  backgroundColor: req.status === 'pending' ? 'orange' : req.status === 'accepted' ? 'green' : 'red' 
+                }}>
                   {req.status.toUpperCase()}
                 </div>
               </div>
@@ -202,7 +291,7 @@ function TouristDashboard() {
         )}
       </div>
 
-      {/* Available Guides Section */}
+      {/* 3. Available Guides Section */}
       <div>
         <h3>🗺️ Available Tour Guides</h3>
         {fetchMessage && <p>{fetchMessage}</p>}
@@ -216,9 +305,15 @@ function TouristDashboard() {
                 <p style={{ margin: '0 0 5px 0', fontStyle: 'italic', fontSize: '0.9em' }}>{guide.bio || "No bio available."}</p>
                 <p style={{ margin: '0 0 5px 0' }}><strong>License:</strong> {guide.license_number || "N/A"}</p>
                 <p style={{ margin: '0 0 15px 0' }}><strong>Rate:</strong> ${guide.hourly_rate}/hr</p>
+                
                 <button 
                   onClick={() => handleRequestGuide(guide.user_id)}
-                  style={{ width: '100%', padding: '8px', backgroundColor: currentItineraryId ? '#007BFF' : '#ccc', color: 'white', border: 'none', borderRadius: '4px', cursor: currentItineraryId ? 'pointer' : 'not-allowed' }}
+                  style={{ 
+                    width: '100%', padding: '8px', 
+                    backgroundColor: currentItineraryId ? '#007BFF' : '#ccc', 
+                    color: 'white', border: 'none', borderRadius: '4px', 
+                    cursor: currentItineraryId ? 'pointer' : 'not-allowed' 
+                  }}
                   title={!currentItineraryId ? "Create a trip first!" : "Request this guide"}
                 >
                   Request Guide
