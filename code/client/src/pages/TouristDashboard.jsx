@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-
-// Fix for missing Leaflet marker icons in React
 import L from 'leaflet';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+
+// Fix for missing Leaflet marker icons in React
 let DefaultIcon = L.icon({
   iconUrl: icon,
   shadowUrl: iconShadow,
@@ -33,12 +33,19 @@ function TouristDashboard() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [selectedLocations, setSelectedLocations] = useState([]);
 
+  // GraphHopper States
+  const [totalDistance, setTotalDistance] = useState(0);
+  const [routePath, setRoutePath] = useState([]); 
+
+  // Replace this with your actual GraphHopper API key
+  const GRAPHHOPPER_API_KEY = '2572c6b5-bf00-43a3-b324-7d65f95e8200'; 
+
   useEffect(() => {
     const fetchData = async () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      // 1. Fetch Places for the Map (Updated route!)
+      // 1. Fetch Places
       try {
         const placesRes = await fetch('http://localhost:5000/api/places');
         const placesData = await placesRes.json();
@@ -46,9 +53,7 @@ function TouristDashboard() {
           setAllPlaces(placesData);
           setFilteredPlaces(placesData);
         }
-      } catch (error) { 
-        console.error("Error fetching places:", error); 
-      }
+      } catch (error) { console.error("Error fetching places:", error); }
 
       // 2. Fetch Guides
       try {
@@ -69,13 +74,47 @@ function TouristDashboard() {
         });
         const requestsData = await requestsRes.json();
         if (requestsRes.ok) setMyRequests(requestsData.requests);
-      } catch (error) { 
-        console.error("Error fetching my requests:", error); 
-      }
+      } catch (error) { console.error("Error fetching my requests:", error); }
     };
-    
     fetchData();
   }, []);
+
+  // Fetch Route from GraphHopper whenever locations change
+  useEffect(() => {
+    const fetchRoute = async () => {
+      if (selectedLocations.length < 2) {
+        setTotalDistance(0);
+        setRoutePath([]);
+        return;
+      }
+
+      // Format points for the GraphHopper API (point=lat,lng&point=lat,lng...)
+      const pointsQuery = selectedLocations
+        .map(loc => `point=${loc.latitude},${loc.longitude}`)
+        .join('&');
+
+      const url = `https://graphhopper.com/api/1/route?${pointsQuery}&profile=car&locale=en&calc_points=true&points_encoded=false&key=${GRAPHHOPPER_API_KEY}`;
+
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.paths && data.paths.length > 0) {
+          // GraphHopper returns distance in meters, convert to km
+          const distanceKm = (data.paths[0].distance / 1000).toFixed(2);
+          setTotalDistance(distanceKm);
+
+          // GraphHopper returns coordinates as [longitude, latitude], Leaflet needs [latitude, longitude]
+          const mappedPath = data.paths[0].points.coordinates.map(coord => [coord[1], coord[0]]);
+          setRoutePath(mappedPath);
+        }
+      } catch (error) {
+        console.error("Error fetching route from GraphHopper:", error);
+      }
+    };
+
+    fetchRoute();
+  }, [selectedLocations]);
 
   // Handle Category Filtering
   const handleFilter = (category) => {
@@ -106,14 +145,13 @@ function TouristDashboard() {
     const token = localStorage.getItem('token');
     if (!token) return setMessage('❌ Error: You are not logged in!');
 
-    // Pass the selected place IDs to the backend
     const placeIds = selectedLocations.map(loc => loc.id);
 
     try {
       const response = await fetch('http://localhost:5000/api/itineraries/create', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+        headers: { 
+          'Content-Type': 'application/json', 
           'Authorization': `Bearer ${token}` 
         },
         body: JSON.stringify({ title, startDate, endDate, places: placeIds }),
@@ -124,10 +162,12 @@ function TouristDashboard() {
         setMessage('✅ Trip saved! You can now request a guide below.');
         const newId = data.itinerary ? data.itinerary.id : data.id;
         setCurrentItineraryId(newId);
-        setTitle('');
-        setStartDate('');
-        setEndDate('');
-        setSelectedLocations([]); // Clear selections after saving
+        setTitle(''); 
+        setStartDate(''); 
+        setEndDate(''); 
+        setSelectedLocations([]);
+        setRoutePath([]);
+        setTotalDistance(0);
       } else {
         setMessage(`❌ Error: ${data.error}`);
       }
@@ -176,24 +216,23 @@ function TouristDashboard() {
       <div style={{ padding: '20px', border: '1px solid #ccc', borderRadius: '8px', marginBottom: '40px', backgroundColor: '#f9f9f9' }}>
         <h3 style={{ marginTop: 0 }}>Plan a New Trip</h3>
         
-        {/* MAP & FILTERS */}
         <div style={{ marginBottom: '20px' }}>
           
-          {/* Category Filter Buttons */}
+          {/* Category Filters */}
           <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
             {['all', 'surfing', 'culture', 'wildlife'].map(cat => (
               <button 
                 key={cat} 
                 onClick={() => handleFilter(cat)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '20px',
-                  border: '1px solid #007BFF',
-                  backgroundColor: activeCategory === cat ? '#007BFF' : 'white',
-                  color: activeCategory === cat ? 'white' : '#007BFF',
-                  cursor: 'pointer',
-                  textTransform: 'capitalize',
-                  fontWeight: 'bold'
+                style={{ 
+                  padding: '8px 16px', 
+                  borderRadius: '20px', 
+                  border: '1px solid #007BFF', 
+                  backgroundColor: activeCategory === cat ? '#007BFF' : 'white', 
+                  color: activeCategory === cat ? 'white' : '#007BFF', 
+                  cursor: 'pointer', 
+                  textTransform: 'capitalize', 
+                  fontWeight: 'bold' 
                 }}
               >
                 {cat}
@@ -201,10 +240,16 @@ function TouristDashboard() {
             ))}
           </div>
 
+          {/* Map Container */}
           <div style={{ height: '350px', width: '100%', borderRadius: '8px', overflow: 'hidden', border: '1px solid #ddd' }}>
             <MapContainer center={[7.8731, 80.7718]} zoom={7} style={{ height: '100%', width: '100%' }}>
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               
+              {/* Using GraphHopper Road Path */}
+              {routePath.length > 0 && (
+                <Polyline positions={routePath} color="#007BFF" weight={5} opacity={0.8} />
+              )}
+
               {filteredPlaces.map((place) => (
                 <Marker key={place.id} position={[place.latitude, place.longitude]}>
                   <Popup>
@@ -224,14 +269,19 @@ function TouristDashboard() {
             </MapContainer>
           </div>
           
-          {/* Selected Locations List */}
+          {/* Selected Locations & Distance */}
           {selectedLocations.length > 0 && (
-            <div style={{ marginTop: '15px', padding: '10px', backgroundColor: '#e9ecef', borderRadius: '5px' }}>
-              <strong>📍 Destinations Selected:</strong>
-              <ul style={{ margin: '5px 0 0 0', paddingLeft: '20px' }}>
-                {selectedLocations.map(loc => (
-                  <li key={loc.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                    {loc.name} 
+            <div style={{ marginTop: '15px', padding: '15px', backgroundColor: '#e9ecef', borderRadius: '5px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <strong>📍 Destinations Selected:</strong>
+                <span style={{ backgroundColor: '#007BFF', color: 'white', padding: '5px 10px', borderRadius: '15px', fontSize: '0.9em', fontWeight: 'bold' }}>
+                  Driving Distance: {totalDistance} km
+                </span>
+              </div>
+              <ul style={{ margin: '10px 0 0 0', paddingLeft: '20px' }}>
+                {selectedLocations.map((loc, index) => (
+                  <li key={loc.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span><strong>{index + 1}.</strong> {loc.name}</span>
                     <span onClick={() => handleRemoveLocation(loc.id)} style={{ color: 'red', cursor: 'pointer', fontWeight: 'bold' }}>✖</span>
                   </li>
                 ))}
@@ -242,6 +292,7 @@ function TouristDashboard() {
 
         {message && <p style={{ fontWeight: 'bold', color: message.includes('✅') ? 'green' : 'red' }}>{message}</p>}
 
+        {/* Trip Form */}
         <form onSubmit={handleCreateTrip}>
           <div style={{ marginBottom: '15px' }}>
             <label>Trip Title:</label> <br />
