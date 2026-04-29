@@ -17,7 +17,19 @@ const getRequestsByGuideId = async (guideId) => {
     const query = `
         SELECT gr.id AS request_id, gr.status, gr.created_at,
                i.title AS trip_title, i.start_date, i.end_date,
-               tp.full_name AS tourist_name, tp.nationality
+               tp.full_name AS tourist_name, tp.nationality,
+               -- NEW: Fetch places for the guide's map preview
+               (
+                   SELECT json_agg(json_build_object(
+                       'id', p.id,
+                       'name', p.name,
+                       'latitude', p.latitude,
+                       'longitude', p.longitude
+                   ))
+                   FROM itinerary_items ii
+                   JOIN places p ON ii.place_id = p.id
+                   WHERE ii.itinerary_id = i.id
+               ) AS places
         FROM guide_requests gr
         JOIN itineraries i ON gr.itinerary_id = i.id
         JOIN tourist_profiles tp ON gr.tourist_id = tp.user_id
