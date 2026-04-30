@@ -13,6 +13,8 @@ function GuideDashboard() {
   const [requests, setRequests] = useState([]);
   const [selectedTrip, setSelectedTrip] = useState(null); // The trip currently being viewed on the map
   const [routePath, setRoutePath] = useState([]);
+  
+  // ⚠️ IMPORTANT: Paste your real GraphHopper API key here to fix the missing blue line!
   const GRAPHHOPPER_API_KEY = 'YOUR_GRAPHHOPPER_API_KEY';
 
   useEffect(() => {
@@ -46,7 +48,36 @@ function GuideDashboard() {
         const mapped = data.paths[0].points.coordinates.map(c => [c[1], c[0]]);
         setRoutePath(mapped);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Routing error:", e); }
+  };
+
+  // NEW: Handle Accept/Decline clicks
+  const handleStatusUpdate = async (requestId, newStatus) => {
+    const token = localStorage.getItem('token');
+    
+    try {
+      const res = await fetch(`http://localhost:5000/api/requests/${requestId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // This fixes the 401 error
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // Update the local state so the button UI changes immediately
+        setRequests(prev => prev.map(req => 
+          req.request_id === requestId ? { ...req, status: newStatus } : req
+        ));
+      } else {
+        alert(data.error || 'Failed to update status');
+      }
+    } catch (error) {
+      console.error("Update error:", error);
+    }
   };
 
   return (
@@ -65,11 +96,26 @@ function GuideDashboard() {
               📍 View Route on Map
             </button>
             
-            {req.status === 'pending' && (
-              <>
-                <button style={{ backgroundColor: 'green', color: '#fff', border: 'none', padding: '8px', borderRadius: '4px', cursor: 'pointer' }}>Accept</button>
-                <button style={{ backgroundColor: 'red', color: '#fff', border: 'none', padding: '8px', borderRadius: '4px', cursor: 'pointer', marginLeft: '5px' }}>Decline</button>
-              </>
+            {/* UPDATED: Status Buttons Logic */}
+            {req.status === 'pending' ? (
+              <div style={{ display: 'inline-block' }}>
+                <button 
+                  onClick={() => handleStatusUpdate(req.request_id, 'accepted')} 
+                  style={{ backgroundColor: 'green', color: '#fff', border: 'none', padding: '8px', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  Accept
+                </button>
+                <button 
+                  onClick={() => handleStatusUpdate(req.request_id, 'declined')} 
+                  style={{ backgroundColor: 'red', color: '#fff', border: 'none', padding: '8px', borderRadius: '4px', cursor: 'pointer', marginLeft: '5px' }}
+                >
+                  Decline
+                </button>
+              </div>
+            ) : (
+              <span style={{ display: 'inline-block', padding: '8px', fontWeight: 'bold', color: req.status === 'accepted' ? 'green' : 'red' }}>
+                {req.status.toUpperCase()}
+              </span>
             )}
           </div>
         ))}
@@ -79,19 +125,33 @@ function GuideDashboard() {
       <div style={{ flex: 1, height: '500px', position: 'sticky', top: '20px' }}>
         <h3>🗺️ Route Preview</h3>
         {selectedTrip ? (
-          <div style={{ height: '100%', border: '2px solid #007BFF', borderRadius: '8px', overflow: 'hidden' }}>
-            <MapContainer center={[selectedTrip.places[0].latitude, selectedTrip.places[0].longitude]} zoom={8} style={{ height: '100%' }}>
+          <div style={{ height: '100%', border: '2px solid #007BFF', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            
+            {/* 1. Safely center the map. If no places, default to Sri Lanka center */}
+            <MapContainer 
+              center={selectedTrip.places && selectedTrip.places.length > 0 && selectedTrip.places[0] ? [selectedTrip.places[0].latitude, selectedTrip.places[0].longitude] : [7.8731, 80.7718]} 
+              zoom={8} 
+              style={{ flex: 1, minHeight: '400px' }}
+            >
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               
               {routePath.length > 0 && <Polyline positions={routePath} color="blue" weight={4} />}
 
-              {selectedTrip.places.map((p, idx) => (
-                <Marker key={p.id} position={[p.latitude, p.longitude]}>
-                  <Popup><strong>{idx + 1}. {p.name}</strong></Popup>
-                </Marker>
+              {/* 2. Safely map over the places ONLY if the array exists and has items */}
+              {selectedTrip.places && selectedTrip.places.length > 0 && selectedTrip.places.map((p, idx) => (
+                p && p.latitude && p.longitude ? (
+                  <Marker key={p.id || idx} position={[p.latitude, p.longitude]}>
+                    <Popup><strong>{idx + 1}. {p.name}</strong></Popup>
+                  </Marker>
+                ) : null
               ))}
             </MapContainer>
-            <p style={{ textAlign: 'center', fontWeight: 'bold' }}>Viewing: {selectedTrip.trip_title}</p>
+            
+            {/* 3. Status text at the bottom */}
+            <p style={{ textAlign: 'center', fontWeight: 'bold', padding: '10px', margin: 0, backgroundColor: '#fff', borderTop: '1px solid #ddd' }}>
+              Viewing: {selectedTrip.trip_title}
+              {(!selectedTrip.places || selectedTrip.places.length === 0 || !selectedTrip.places[0]) && " (No locations saved for this trip)"}
+            </p>
           </div>
         ) : (
           <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eee', borderRadius: '8px' }}>

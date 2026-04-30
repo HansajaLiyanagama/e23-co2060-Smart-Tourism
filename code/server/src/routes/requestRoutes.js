@@ -7,7 +7,7 @@ const verifyToken = require('../middleware/authMiddleware');
 router.post('/create', verifyToken, requestController.createBookingRequest);
 
 // NEW: Guide fetches their requests
-router.get('/me', verifyToken, requestController.getRequestsForGuide);
+router.get('/guide', verifyToken, requestController.getRequestsForGuide);
 
 // NEW: Tourist fetches their own sent requests
 router.get('/tourist', verifyToken, requestController.getRequestsForTourist);
