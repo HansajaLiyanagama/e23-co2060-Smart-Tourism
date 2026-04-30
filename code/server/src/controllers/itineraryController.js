@@ -2,27 +2,32 @@ const itineraryRepo = require('../repositories/itineraryRepo');
 
 const createTrip = async (req, res) => {
     try {
-        // Get the verified user ID from the token
-        const userId = req.user.id; 
+        const touristId = req.user.id; // Comes from your verifyToken middleware
         
-        // Grab the trip details from the frontend form
-        const { title, startDate, endDate } = req.body;
+        // Extract 'places' alongside the other data from the frontend
+        const { title, startDate, endDate, places } = req.body;
 
+        if (!title || !startDate || !endDate) {
+            return res.status(400).json({ error: 'Please provide title, start date, and end date.' });
+        }
+
+        // Pass the places array into the repo
         const newItinerary = await itineraryRepo.createItinerary(
-            userId, 
+            touristId, 
             title, 
             startDate, 
-            endDate
+            endDate, 
+            places
         );
-
-        res.status(201).json({
-            message: 'Itinerary created successfully!',
-            itinerary: newItinerary
+        
+        res.status(201).json({ 
+            message: 'Trip and locations saved successfully!', 
+            itinerary: newItinerary 
         });
 
     } catch (error) {
-        console.error('Error creating itinerary:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('Error creating trip with locations:', error);
+        res.status(500).json({ error: 'Internal server error while creating trip' });
     }
 };
 
