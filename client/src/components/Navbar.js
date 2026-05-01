@@ -25,7 +25,7 @@ const Navbar = () => {
       interval = setInterval(fetchCount, 30000); // Poll every 30s
     }
     return () => clearInterval(interval);
-  }, [user, navigate]);
+  }, [user, isAuthenticated]);
 
   const handleLogout = () => {
     logout();

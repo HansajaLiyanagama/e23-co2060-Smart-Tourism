@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { guideService, bookingService } from '../services';
 import './TravelGuidePage.css';
@@ -19,21 +19,15 @@ const TravelGuidePage = () => {
   const [messageTextByBooking, setMessageTextByBooking] = useState({});
   const [expandedBookingId, setExpandedBookingId] = useState(null);
 
-  useEffect(() => {
-    fetchGuides();
-    if (user?.role === 'tourist') {
-      fetchBookings();
-    }
-  }, [user]);
-
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
+    if (!user?.id) return;
     try {
       const response = await bookingService.getTouristBookings(user.id);
       setBookings(response.data.bookings || []);
     } catch (err) {
       console.error('Error fetching bookings:', err);
     }
-  };
+  }, [user?.id]);
 
   const handleBookingAction = async (bookingId, action) => {
     try {
@@ -78,11 +72,10 @@ const TravelGuidePage = () => {
     }
   };
 
-  const fetchGuides = async () => {
+  const fetchGuides = useCallback(async () => {
     try {
       setLoading(true);
       const response = await guideService.getAllGuides();
-      // Ensure we extract guides array from response.data
       const guideList = response.data.guides || [];
       setGuides(guideList);
       setFilteredGuides(guideList);
@@ -92,9 +85,9 @@ const TravelGuidePage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchBookingMessagesForId = async (bookingId) => {
+  const fetchBookingMessagesForId = useCallback(async (bookingId) => {
     try {
       const response = await bookingService.getBookingMessages(bookingId);
       setBookingMessagesByBooking(prev => ({
@@ -104,7 +97,14 @@ const TravelGuidePage = () => {
     } catch (err) {
       console.error('Error loading booking messages:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchGuides();
+    if (user?.role === 'tourist') {
+      fetchBookings();
+    }
+  }, [user?.role, fetchGuides, fetchBookings]);
 
   const handleSendBookingMessage = async (bookingId) => {
     const message = messageTextByBooking[bookingId] || '';
@@ -163,7 +163,7 @@ const TravelGuidePage = () => {
     bookings.forEach((booking) => {
       fetchBookingMessagesForId(booking.id);
     });
-  }, [bookings, user?.role]);
+  }, [bookings, user?.role, fetchBookingMessagesForId]);
 
   return (
     <main className="travel-guide-page">
@@ -384,7 +384,6 @@ const TravelGuidePage = () => {
           </div>
         )}
 
-        {/* Portfolio Modal */}
         {showPortfolio && selectedGuide && (
           <div className="modal-overlay" onClick={closeModals}>
             <div className="modal-box" onClick={e => e.stopPropagation()}>
@@ -437,7 +436,6 @@ const TravelGuidePage = () => {
           </div>
         )}
 
-        {/* Contact Modal */}
         {showContact && selectedGuide && (
           <div className="modal-overlay" onClick={closeModals}>
             <div className="modal-box modal-contact" onClick={e => e.stopPropagation()}>

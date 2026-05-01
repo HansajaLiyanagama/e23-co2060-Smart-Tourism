@@ -2,28 +2,20 @@ const bookingRepo = require('../repositories/bookingRepo');
 const userRepo = require('../repositories/userRepo');
 const itineraryRepo = require('../repositories/itineraryRepo');
 
-/**
- * BOOKING CONTROLLER
- * Orchestrates booking-related requests
- */
-
 async function requestGuidesForItinerary(req, res) {
     try {
         const { itineraryId } = req.params;
         const { touristId, notes } = req.body;
 
-        // 1. Fetch the itinerary details
         const itinerary = await itineraryRepo.getItineraryById(itineraryId);
         if (!itinerary) {
             return res.status(404).json({ error: 'Itinerary not found' });
         }
 
-        // 2. Extract unique locations from the itinerary
         const locationNames = [...new Set(itinerary.places.map(p => p.name))];
-        
-        // 3. Find guides who cover these locations
+
         const potentialGuides = await userRepo.findGuidesByLocations(locationNames);
-        
+
         if (potentialGuides.length === 0) {
             return res.status(200).json({ 
                 success: true, 
@@ -31,7 +23,6 @@ async function requestGuidesForItinerary(req, res) {
             });
         }
 
-        // 4. Create booking requests for each guide
         const createdBookings = [];
         for (const guide of potentialGuides) {
             const booking = await bookingRepo.createBooking(itineraryId, guide.user_id, touristId, notes);
@@ -158,7 +149,6 @@ async function cancelBooking(req, res) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
-        // Check if the user is the tourist who made the booking
         const booking = await bookingRepo.getBookingById(id);
         if (!booking) {
             return res.status(404).json({ error: 'Booking not found' });
@@ -167,7 +157,6 @@ async function cancelBooking(req, res) {
             return res.status(403).json({ error: 'You can only cancel your own bookings' });
         }
 
-        // Only allow cancellation if status is pending or quoted
         if (!['pending', 'quoted'].includes(booking.status)) {
             return res.status(400).json({ error: 'Cannot cancel this booking at this stage' });
         }

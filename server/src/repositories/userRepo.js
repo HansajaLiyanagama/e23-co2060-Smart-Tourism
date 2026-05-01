@@ -181,11 +181,6 @@ const suggestGuidesForItinerary = async (itineraryId) => {
                 }
             }
 
-            // Guides without locations still get a low base score so they can be shown as a fallback
-            if (!guide.covered_locations) {
-                score += 1;
-            }
-
             return {
                 ...guide,
                 match_score: score,
@@ -195,7 +190,15 @@ const suggestGuidesForItinerary = async (itineraryId) => {
         });
 
         const suggestedGuides = scoredGuides
-          .sort((a, b) => b.match_score - a.match_score);
+          .filter(guide => guide.matched_places.length > 0)
+          .sort((a, b) => {
+              // Primary sort: number of matched places (descending)
+              if (b.matched_places.length !== a.matched_places.length) {
+                  return b.matched_places.length - a.matched_places.length;
+              }
+              // Secondary sort: match score (descending)
+              return b.match_score - a.match_score;
+          });
 
         return suggestedGuides;
     } catch (error) {

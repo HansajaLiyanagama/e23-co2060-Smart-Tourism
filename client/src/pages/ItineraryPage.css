@@ -19,6 +19,7 @@
   display: grid;
   grid-template-columns: 300px 1fr;
   gap: 30px;
+  align-items: start;
 }
 
 /* Sidebar */
@@ -26,6 +27,8 @@
   display: flex;
   flex-direction: column;
   gap: 30px;
+  position: sticky;
+  top: 90px;
 }
 
 .create-itinerary,
@@ -123,16 +126,18 @@
 /* Main Content */
 .itinerary-content {
   background: white;
-  border-radius: 8px;
-  padding: 30px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 14px;
+  padding: 28px;
+  border: 1px solid #e6ebf4;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
 }
 
 .detail-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
+  gap: 12px;
 }
 
 .detail-header h2 {
@@ -430,6 +435,8 @@
   }
 
   .itinerary-sidebar {
+    position: static;
+    top: auto;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
@@ -441,6 +448,11 @@
     grid-template-columns: 1fr;
   }
 
+  .itinerary-content {
+    padding: 18px;
+    border-radius: 12px;
+  }
+
   .detail-header {
     flex-direction: column;
     gap: 10px;
@@ -448,6 +460,12 @@
 
   .place-item {
     grid-template-columns: 1fr;
+  }
+
+  .map-preview-container {
+    min-height: 300px;
+    height: 320px;
+    border-radius: 12px;
   }
 }
 /* Guide Suggestions */
@@ -877,12 +895,15 @@
 /* Map Styles */
 .map-preview-container {
   width: 100%;
-  height: 300px;
-  margin-bottom: 20px;
-  border-radius: 8px;
+  min-height: 420px;
+  height: clamp(420px, 48vh, 560px);
+  margin-bottom: 24px;
+  border-radius: 14px;
   overflow: hidden;
-  border: 1px solid #ddd;
+  border: 1px solid #d9e2ef;
+  box-shadow: 0 10px 26px rgba(30, 41, 59, 0.14);
   z-index: 1;
+  background: #f8fafc;
 }
 
 .itinerary-map {
@@ -917,81 +938,10 @@
 .journey-summary {
   background: #fff;
   border: 1px solid #e0e4f0;
-  border-radius: 10px;
-  padding: 16px 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.08);
-}
-
-.journey-summary__loading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #667eea;
-  font-size: 0.95rem;
-}
-
-.journey-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid #f3f3f3;
-  border-top: 2px solid #667eea;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.journey-summary__error {
-  color: #e74c3c;
-  font-size: 0.9rem;
-  margin: 0;
-}
-
-.journey-summary__stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 16px;
-  margin-top: 12px;
-}
-
-.journey-stat {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-}
-
-.journey-stat__icon {
-  font-size: 1.5rem;
-  width: 24px;
-  text-align: center;
-}
-
-.journey-stat__label {
-  font-size: 0.8rem;
-  color: #6c757d;
-  margin-bottom: 2px;
-  display: block;
-}
-
-.journey-stat__value {
-  font-weight: 600;
-  color: #2c3e50;
-  font-size: 0.95rem;
-}
-
-.journey-summary__disclaimer {
-  font-size: 0.8rem;
-  color: #6c757d;
-  margin-top: 12px;
-  text-align: center;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 22px;
+  box-shadow: 0 6px 18px rgba(102, 126, 234, 0.08);
 }
 
 /* Responsive */

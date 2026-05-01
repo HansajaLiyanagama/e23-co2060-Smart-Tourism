@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { profileService, systemService } from '../services';
 import './DashboardPage.css';
 
 const DashboardPage = () => {
   const { user, logout } = useAuth();
-  const [profile, setProfile] = useState(null);
   const [systemStatus, setSystemStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -14,11 +13,7 @@ const DashboardPage = () => {
   const [imagePreview, setImagePreview] = useState('');
   const [profileImage, setProfileImage] = useState(null);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -26,7 +21,6 @@ const DashboardPage = () => {
       if (user && user.id) {
         const profileResponse = await profileService.getProfile(user.id);
         const profile = profileResponse.data.profile;
-        setProfile(profile);
         if (profile.profile_image_url) {
           setImagePreview(profile.profile_image_url);
         }
@@ -54,7 +48,11 @@ const DashboardPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -71,7 +69,6 @@ const DashboardPage = () => {
 
       // send the updated data along with the user's role so the proper endpoint is used
       await profileService.updateProfile(user.id, payload, user.role);
-      setProfile(prev => ({ ...prev, ...formData }));
       setEditMode(false);
       setProfileImage(null);
       alert('Portfolio updated successfully!');

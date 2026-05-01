@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { bookingService } from '../services';
 import './DashboardPage.css'; // Reuse dashboard styles
@@ -14,27 +14,8 @@ const ClientsPage = () => {
   const [bookingMessages, setBookingMessages] = useState({});
   const [messageTextByBooking, setMessageTextByBooking] = useState({});
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchBookings();
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (selectedBooking) {
-      fetchBookingMessages(selectedBooking.id);
-    }
-  }, [selectedBooking]);
-
-  useEffect(() => {
-    bookings.forEach((booking) => {
-      if (!bookingMessages[booking.id]) {
-        fetchBookingMessages(booking.id);
-      }
-    });
-  }, [bookings]);
-
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
+    if (!user?.id) return;
     try {
       setLoading(true);
       const response = await bookingService.getGuideBookings(user.id);
@@ -44,7 +25,7 @@ const ClientsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
   const handleQuotePrice = async (e) => {
     e.preventDefault();
@@ -60,7 +41,6 @@ const ClientsPage = () => {
       setSuccess('Quote sent successfully!');
       setSelectedBooking(null);
       setQuotePrice('');
-      setMessageText('');
       fetchBookings();
     } catch (err) {
       setError('Failed to send quote');
@@ -69,7 +49,7 @@ const ClientsPage = () => {
     }
   };
 
-  const fetchBookingMessages = async (bookingId) => {
+  const fetchBookingMessages = useCallback(async (bookingId) => {
     try {
       const response = await bookingService.getBookingMessages(bookingId);
       setBookingMessages(prev => ({
@@ -79,7 +59,25 @@ const ClientsPage = () => {
     } catch (err) {
       console.error('Failed to load booking messages:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
+
+  useEffect(() => {
+    if (selectedBooking) {
+      fetchBookingMessages(selectedBooking.id);
+    }
+  }, [selectedBooking, fetchBookingMessages]);
+
+  useEffect(() => {
+    bookings.forEach((booking) => {
+      if (!bookingMessages[booking.id]) {
+        fetchBookingMessages(booking.id);
+      }
+    });
+  }, [bookings, bookingMessages, fetchBookingMessages]);
 
   const handleSendMessage = async (bookingId) => {
     const message = (messageTextByBooking[bookingId] || '').trim();
@@ -99,19 +97,6 @@ const ClientsPage = () => {
     } catch (err) {
       console.error('Failed to send message:', err);
       setError('Failed to send message');
-    }
-  };
-
-  const handleAccept = async (bookingId) => {
-    try {
-      setLoading(true);
-      await bookingService.acceptQuote(bookingId);
-      setSuccess('Booking accepted!');
-      fetchBookings();
-    } catch (err) {
-      setError('Failed to accept booking');
-    } finally {
-      setLoading(false);
     }
   };
 

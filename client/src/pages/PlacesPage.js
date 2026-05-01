@@ -12,7 +12,7 @@ const PlacesPage = () => {
 
   useEffect(() => {
     fetchPlaces();
-  }, []);
+  }, [fetchPlaces]);
 
   useEffect(() => {
     setDisplayedPlaces(places);

@@ -88,7 +88,7 @@ const RegisterPage = () => {
 
     setLoading(true);
     
-    const { full_name, contact_number, covered_locations, profile_image, ...baseData } = formData;
+    const { full_name, contact_number, covered_locations, profile_image } = formData;
     const result = await register(formData.email, formData.password, formData.role, {
         full_name,
         contact_number,

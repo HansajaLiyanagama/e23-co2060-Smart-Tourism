@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePlace } from '../context/PlaceContext';
 import { useAuth } from '../context/AuthContext';
@@ -16,15 +16,7 @@ const PlaceDetailPage = () => {
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
 
-  useEffect(() => {
-    const foundPlace = getPlaceById(id);
-    if (foundPlace) {
-      setPlace(foundPlace);
-      fetchReviews();
-    }
-  }, [id, getPlaceById]);
-
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
       setReviewsLoading(true);
       const response = await reviewService.getPlaceReviews(id);
@@ -34,7 +26,15 @@ const PlaceDetailPage = () => {
     } finally {
       setReviewsLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    const foundPlace = getPlaceById(id);
+    if (foundPlace) {
+      setPlace(foundPlace);
+      fetchReviews();
+    }
+  }, [id, getPlaceById, fetchReviews]);
 
   const handleReviewSubmit = async (formData) => {
     if (!isAuthenticated()) {

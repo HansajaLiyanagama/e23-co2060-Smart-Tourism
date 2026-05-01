@@ -74,6 +74,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 const ItineraryPage = () => {
   const [searchParams] = useSearchParams();
+  const placeToAddParam = searchParams.get('add');
   const { user } = useAuth();
   const { places } = usePlace();
   const navigate = useNavigate();
@@ -130,20 +131,21 @@ const ItineraryPage = () => {
       const response = await itineraryService.getUserItineraries(user.id);
       const data = response.data.data || [];
       setItineraries(data);
-      
-      // Update selected itinerary with fresh data from backend
-      if (selectedItinerary) {
-        const updated = data.find(it => it.id === selectedItinerary.id);
-        if (updated) setSelectedItinerary(updated);
-      } else if (data.length > 0) {
-        setSelectedItinerary(data[0]);
-      }
+
+      // Keep selection stable without making this callback depend on selectedItinerary
+      setSelectedItinerary((prev) => {
+        if (prev) {
+          const updated = data.find((it) => it.id === prev.id);
+          return updated || prev;
+        }
+        return data.length > 0 ? data[0] : null;
+      });
     } catch (err) {
       setError('Failed to load itineraries');
     } finally {
       setLoading(false);
     }
-  }, [user?.id, selectedItinerary]);
+  }, [user?.id]);
 
   const fetchTouristBookings = useCallback(async () => {
     if (user?.role !== 'tourist') return;
@@ -164,12 +166,11 @@ const ItineraryPage = () => {
     loadPlaces();
     fetchTouristBookings();
 
-    const placeToAdd = searchParams.get('add');
-    if (placeToAdd) {
-      setPendingPlaceToAddId(parseInt(placeToAdd));
+    if (placeToAddParam) {
+      setPendingPlaceToAddId(parseInt(placeToAddParam));
       setSuccess('Select an itinerary to add this place');
     }
-  }, [user, navigate, loadPlaces]); // Note: fetchItineraries excluded to prevent loops
+  }, [user, navigate, loadPlaces, fetchItineraries, fetchTouristBookings, placeToAddParam]);
 
   const handleCreateItinerary = async (e) => {
     e.preventDefault();
@@ -188,14 +189,14 @@ const ItineraryPage = () => {
       setNewItinerary({ title: '', startDate: '', endDate: '' });
       setSuccess('Itinerary created successfully!');
       
-      const placeToAddId = searchParams.get('add');
+      const placeToAddId = placeToAddParam;
       if (placeToAddId) handleAddPlaceToItinerary(created.id, parseInt(placeToAddId));
     } catch (err) {
       setError('Failed to create itinerary');
     }
   };
 
-  const handleAddPlaceToItinerary = async (itineraryId, placeId, clearQuery = false) => {
+  const handleAddPlaceToItinerary = useCallback(async (itineraryId, placeId, clearQuery = false) => {
     try {
       await itineraryService.addPlaceToItinerary(itineraryId, placeId);
       setSuccess('Place added to itinerary!');
@@ -214,7 +215,7 @@ const ItineraryPage = () => {
       setError('Failed to add place');
       setPlaceAddError(err.response?.data?.error || 'Failed to add place to itinerary');
     }
-  };
+  }, [fetchItineraries, navigate]);
 
   const handleRemovePlace = async (itineraryId, placeId) => {
     try {
@@ -379,13 +380,13 @@ const ItineraryPage = () => {
     if (itineraries.length > 1 && !targetItineraryId) {
       setTargetItineraryId(itineraries[0]?.id || null);
     }
-  }, [pendingPlaceToAddId, itineraries, targetItineraryId]);
+  }, [pendingPlaceToAddId, itineraries, targetItineraryId, handleAddPlaceToItinerary]);
 
   useEffect(() => {
     if (selectedItinerary && user?.role === 'tourist') {
       fetchTouristBookings();
     }
-  }, [selectedItinerary?.id, user?.role, fetchTouristBookings]);
+  }, [selectedItinerary, user?.role, fetchTouristBookings]);
 
   useEffect(() => {
     currentItineraryBookings.forEach((booking) => {
@@ -415,8 +416,7 @@ const ItineraryPage = () => {
 
   const { markers, polyline } = getMapData();
   const today = new Date().toISOString().split('T')[0];
-  const placeToAdd = searchParams.get('add');
-  const isLinkingPlace = Boolean(placeToAdd);
+  const isLinkingPlace = Boolean(placeToAddParam);
 
   return (
     <main className="itinerary-page">
