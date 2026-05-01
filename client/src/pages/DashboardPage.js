@@ -11,6 +11,8 @@ const DashboardPage = () => {
   const [error, setError] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({});
+  const [imagePreview, setImagePreview] = useState('');
+  const [profileImage, setProfileImage] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -25,6 +27,9 @@ const DashboardPage = () => {
         const profileResponse = await profileService.getProfile(user.id);
         const profile = profileResponse.data.profile;
         setProfile(profile);
+        if (profile.profile_image_url) {
+          setImagePreview(profile.profile_image_url);
+        }
 
         // copy server values into form state
         setFormData({
@@ -60,17 +65,32 @@ const DashboardPage = () => {
       const payload = {
           ...formData,
           covered_locations: user.role === 'guide' ? formData.location : undefined,
-          nationality: user.role === 'tourist' ? formData.location : undefined
+          nationality: user.role === 'tourist' ? formData.location : undefined,
+          profile_image_url: profileImage || imagePreview
       };
 
       // send the updated data along with the user's role so the proper endpoint is used
       await profileService.updateProfile(user.id, payload, user.role);
       setProfile(prev => ({ ...prev, ...formData }));
       setEditMode(false);
+      setProfileImage(null);
       alert('Portfolio updated successfully!');
     } catch (err) {
       console.error('Profile update error', err);
       setError('Failed to update profile');
+    }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target.result;
+        setProfileImage(base64);
+        setImagePreview(base64);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -153,6 +173,79 @@ const DashboardPage = () => {
 
                 {user.role === 'guide' && (
                   <>
+                    <div className="form-group">
+                      <label style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '12px', display: 'block' }}>
+                        📸 Profile Picture
+                      </label>
+                      {imagePreview && (
+                        <div style={{ 
+                          marginBottom: '16px',
+                          padding: '12px',
+                          backgroundColor: '#f0f5f9',
+                          borderRadius: '12px',
+                          border: '2px solid #e0e8f0',
+                          display: 'inline-block'
+                        }}>
+                          <img 
+                            src={imagePreview} 
+                            alt="Profile Preview" 
+                            style={{ 
+                              maxWidth: '180px', 
+                              maxHeight: '180px', 
+                              borderRadius: '10px',
+                              display: 'block',
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                            }}
+                          />
+                        </div>
+                      )}
+                      <div style={{
+                        position: 'relative',
+                        display: 'inline-block',
+                        width: '100%'
+                      }}>
+                        <input
+                          type="file"
+                          name="profile_picture"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          style={{
+                            display: 'none'
+                          }}
+                          id="dashboard-profile-upload"
+                        />
+                        <label
+                          htmlFor="dashboard-profile-upload"
+                          style={{
+                            display: 'block',
+                            padding: '16px 20px',
+                            borderRadius: '8px',
+                            border: '2px dashed #3498db',
+                            backgroundColor: '#ecf0f1',
+                            textAlign: 'center',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease',
+                            fontSize: '0.95rem',
+                            fontWeight: '500',
+                            color: '#2c3e50'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#d5e8f7';
+                            e.currentTarget.style.borderColor = '#2980b9';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#ecf0f1';
+                            e.currentTarget.style.borderColor = '#3498db';
+                          }}
+                        >
+                          ⬆️ Click to upload or drag and drop
+                        </label>
+                      </div>
+                      <p style={{ fontSize: '0.8rem', color: '#7f8c8d', marginTop: '8px' }}>
+                        Supported formats: JPG, PNG, WebP (Max 10MB)
+                      </p>
+                    </div>
+
                     <div className="form-group">
                       <label>Contact Number</label>
                       <input

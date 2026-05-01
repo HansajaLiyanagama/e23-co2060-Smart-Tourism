@@ -9,7 +9,7 @@ const userRepo = require('../repositories/userRepo');
  */
 const register = async (req, res) => {
     try {
-        const { email, password, role, full_name, contact_number, covered_locations } = req.body;
+        const { email, password, role, full_name, contact_number, covered_locations, profile_image_url } = req.body;
 
         // 1. Check if the user already exists
         const existingUser = await userRepo.findUserByEmail(email);
@@ -34,7 +34,7 @@ const register = async (req, res) => {
                     null, // license_number (NULL allows multiple entries, unlike '')
                     0, // hourly_rate
                     contact_number || null,
-                    null, // profile_image_url
+                    profile_image_url || null, // profile_image_url
                     null, // specialization
                     0, // experience_years
                     null, // languages

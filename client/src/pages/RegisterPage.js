@@ -12,10 +12,12 @@ const RegisterPage = () => {
     role: 'tourist',
     full_name: '',
     contact_number: '',
-    covered_locations: ''
+    covered_locations: '',
+    profile_image: null
   });
   const [places, setPlaces] = useState([]);
   const [placeSearchTerm, setPlaceSearchTerm] = useState('');
+  const [imagePreview, setImagePreview] = useState('');
 
   useEffect(() => {
     const fetchPlaces = async () => {
@@ -58,6 +60,19 @@ const RegisterPage = () => {
     setError('');
   };
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target.result;
+        setFormData(prev => ({ ...prev, profile_image: base64 }));
+        setImagePreview(base64);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -73,11 +88,12 @@ const RegisterPage = () => {
 
     setLoading(true);
     
-    const { full_name, contact_number, covered_locations, ...baseData } = formData;
+    const { full_name, contact_number, covered_locations, profile_image, ...baseData } = formData;
     const result = await register(formData.email, formData.password, formData.role, {
         full_name,
         contact_number,
-        covered_locations
+        covered_locations,
+        profile_image_url: profile_image
     });
     
     if (result.success) {
@@ -155,51 +171,150 @@ const RegisterPage = () => {
                   borderRadius: '8px',
                   border: '1px solid #ddd',
                   marginBottom: '12px',
-                  fontSize: '0.95rem'
+                  fontSize: '0.95rem',
+                  boxSizing: 'border-box'
                 }}
               />
               <div className="location-checkbox-grid" style={{ 
                 display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', 
+                gridTemplateColumns: '1fr', 
                 gap: '10px',
-                padding: '10px',
+                padding: '12px',
                 border: '1px solid #ddd',
                 borderRadius: '8px',
                 marginTop: '5px',
-                maxHeight: '200px',
-                overflowY: 'auto'
+                maxHeight: '250px',
+                overflowY: 'auto',
+                backgroundColor: '#f9fafb'
               }}>
                 {filteredPlaces.length > 0 ? filteredPlaces.map(place => (
                   <label key={place.id} style={{ 
                     display: 'flex', 
                     alignItems: 'center', 
-                    gap: '8px', 
-                    fontSize: '0.9rem',
-                    cursor: 'pointer'
-                  }}>
+                    gap: '12px', 
+                    fontSize: '0.95rem',
+                    cursor: 'pointer',
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    transition: 'background-color 0.2s',
+                    userSelect: 'none'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
                     <input
                       type="checkbox"
                       checked={formData.covered_locations.split(', ').includes(place.name)}
                       onChange={() => handleLocationToggle(place.name)}
+                      style={{ cursor: 'pointer', width: '18px', height: '18px' }}
                     />
-                    {place.name}
+                    <span>{place.name}</span>
                   </label>
                 )) : (
-                  <div style={{ color: '#666', fontSize: '0.9rem' }}>
+                  <div style={{ color: '#999', fontSize: '0.9rem', padding: '10px' }}>
                     No matching places found.
                   </div>
                 )}
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', cursor: 'pointer' }}>
+                <label style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '12px', 
+                  fontSize: '0.95rem', 
+                  cursor: 'pointer',
+                  padding: '8px 10px',
+                  borderRadius: '6px',
+                  transition: 'background-color 0.2s',
+                  userSelect: 'none'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
                   <input
                     type="checkbox"
                     checked={formData.covered_locations.split(', ').includes('Island Wide')}
                     onChange={() => handleLocationToggle('Island Wide')}
+                    style={{ cursor: 'pointer', width: '18px', height: '18px' }}
                   />
-                  Island Wide
+                  <span>Island Wide</span>
                 </label>
               </div>
-              <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '5px' }}>
-                Selected: {formData.covered_locations || 'None'}
+              <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '8px', fontWeight: '500' }}>
+                📍 Selected: <span style={{ color: '#2c3e50', fontWeight: '600' }}>{formData.covered_locations || 'None'}</span>
+              </p>
+            </div>
+          )}
+
+          {formData.role === 'guide' && (
+            <div className="form-group">
+              <label style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '12px', display: 'block' }}>
+                📸 Profile Picture
+              </label>
+              {imagePreview && (
+                <div style={{ 
+                  marginBottom: '16px',
+                  padding: '12px',
+                  backgroundColor: '#f0f5f9',
+                  borderRadius: '12px',
+                  border: '2px solid #e0e8f0',
+                  display: 'inline-block'
+                }}>
+                  <img 
+                    src={imagePreview} 
+                    alt="Preview" 
+                    style={{ 
+                      maxWidth: '180px', 
+                      maxHeight: '180px', 
+                      borderRadius: '10px',
+                      display: 'block',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                    }}
+                  />
+                </div>
+              )}
+              <div style={{
+                position: 'relative',
+                display: 'inline-block',
+                width: '100%'
+              }}>
+                <input
+                  type="file"
+                  id="profile_image"
+                  name="profile_image"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  style={{
+                    display: 'none'
+                  }}
+                />
+                <label
+                  htmlFor="profile_image"
+                  style={{
+                    display: 'block',
+                    padding: '16px 20px',
+                    borderRadius: '8px',
+                    border: '2px dashed #3498db',
+                    backgroundColor: '#ecf0f1',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    fontSize: '0.95rem',
+                    fontWeight: '500',
+                    color: '#2c3e50'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#d5e8f7';
+                    e.currentTarget.style.borderColor = '#2980b9';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#ecf0f1';
+                    e.currentTarget.style.borderColor = '#3498db';
+                  }}
+                >
+                  ⬆️ Click to upload or drag and drop
+                </label>
+              </div>
+              <p style={{ fontSize: '0.8rem', color: '#7f8c8d', marginTop: '8px' }}>
+                Supported formats: JPG, PNG, WebP (Max 10MB)
               </p>
             </div>
           )}
