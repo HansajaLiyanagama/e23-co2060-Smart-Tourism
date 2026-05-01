@@ -16,7 +16,6 @@ We are building a web-based MVP focused on trust and usability:
 
 ## 3. Key Features
 * **Interactive Itinerary Planner:** Drag-and-drop interface to build custom trips.
-* **Verified Guide Portfolios:** A system where guides display credentials and vehicle details, verified by admins to ensure safety.
 * **Review System:** Community-driven ratings for destinations and guides.
 
 ## 4. Links
