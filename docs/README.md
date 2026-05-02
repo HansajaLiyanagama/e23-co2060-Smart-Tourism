@@ -24,10 +24,10 @@ A HTML template integrated with the given GitHub repository templates, based on 
 ---
 
 ## Team
--  E/23/161, Kanchana K.L.A.Y.R., [e23161@eng.pdn.ac.lk](mailto:e23161@eng.pdn.ac.lk)
--  E/23/187, Kumarasinghe K.M.D.S., [e23187@eng.pdn.ac.lk](mailto:e23187@eng.pdn.ac.lk)
--  E/23/202, Liyanagama K.L.D.H., [e23202@eng.pdn.ac.lk](mailto:e23202@eng.pdn.ac.lk)
--  E/23/300, Ranathunga S.M.R.S., [e23300@eng.pdn.ac.lk](mailto:e23300@eng.pdn.ac.lk)
+-  E/23/161, Kanchana K.L.A.Y.R., [email](mailto:e23161@eng.pdn.ac.lk)
+-  E/23/187, Kumarasinghe K.M.D.S., [email](mailto:e23187@eng.pdn.ac.lk)
+-  E/23/202, Liyanagama K.L.D.H., [email](mailto:e23202@eng.pdn.ac.lk)
+-  E/23/300, Ranathunga S.M.R.S., [email](mailto:e23300@eng.pdn.ac.lk)
 
 <!-- Image (photo/drawing of the final hardware) should be here -->
 
@@ -38,7 +38,7 @@ A HTML template integrated with the given GitHub repository templates, based on 
 #### Table of Contents
 1. [Introduction](#introduction)
 2. [Solution Architecture](#solution-architecture )
-3. [Software Designs](#hardware-and-software-designs)
+3. [Software Designs](#solution-architecture)
 4. [Testing](#testing)
 5. [Conclusion](#conclusion)
 6. [Links](#links)
