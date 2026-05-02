@@ -38,278 +38,73 @@ client/
 └── .env.example            # Environment variables template
 ```
 
-## Key Features
 
-### 1. **Authentication System**
-- User registration (Tourist/Travel Guide roles)
-- User login with JWT token
-- Protected routes for authenticated users
-- Auto-logout on token expiry
 
-### 2. **Place Discovery**
-- Browse all travel destinations
-- Advanced search algorithm with fuzzy matching
-- Location-based filtering using Haversine formula
-- Detailed place information with reviews
-- Place ratings and visitor feedback
+# Smart Tourism Platform - Client Interface
 
-### 3. **Travel Guide Portfolio**
-- Browse experienced travel guides
-- Filter guides by specialization
-- View guide ratings and experience
-- Contact guides (UI ready for backend integration)
-- Portfolio viewing capability
+This directory contains the frontend web application for the Smart Tourism SaaS Platform. Built entirely with React, this client-side application provides a robust, high-performance interface designed to facilitate the complex interactions between tourists planning their journeys and professional travel guides managing their businesses.
 
-### 4. **Itinerary Planning**
-- Create custom travel itineraries
-- Add/remove places from itineraries
-- Organize places in travel sequence
-- Set trip dates
-- Drag-and-drop support (ready for implementation)
+## Overview and Architecture
 
-### 5. **Review System**
-- Leave ratings and reviews for places
-- View community reviews
-- Star-based rating system
-- Review moderation ready
+The frontend is structured around a role-based architecture. Upon authentication, the application dynamically adjusts its routing, navigation, and core features based on whether the user is registered as a "Tourist" or a "Travel Guide". 
 
-### 6. **User Dashboard**
-- View profile information
-- Edit personal details
-- System status monitoring
-- Quick action buttons
-- Statistics display
+The application utilizes a modular component architecture to ensure maintainability. Global state management is handled via React Context API to manage user sessions and global place data, reducing prop-drilling and ensuring that authentication states remain synchronized across the entire application lifecycle.
 
-## Installation & Setup
+## Core Features and Capabilities
 
-### Prerequisites
-- Node.js (v14 or higher)
-- npm or yarn package manager
+### Role-Based Portals
+- Tourist Portal: Features comprehensive itinerary planning tools, place discovery engines, and a guide matchmaking system. Tourists can browse locations by category, add them to a dynamic trip planner, and send engagement requests to local professionals.
+- Guide Portal: Functions as a lightweight CRM (Customer Relationship Management) tool. Guides can manage their public portfolios, track incoming booking requests, and organize their accepted jobs.
 
-### Installation Steps
+### Interactive Itinerary Routing
+- Map Integration: The platform uses React-Leaflet to render interactive maps where users can visualize their planned destinations.
+- GraphHopper Intelligence: When two or more locations are added to an itinerary, the client communicates with the GraphHopper Routing API to automatically calculate the most efficient driving route. The UI instantly updates to display the total distance, estimated driving duration, and an estimated transportation cost based on current local rates.
 
-1. **Navigate to client directory:**
-   ```bash
+### Real-Time Engagement and Negotiation
+- The platform features a high-density, collapsible engagement queue. When a tourist requests a guide, a dedicated channel is opened.
+- Multi-Currency Quoting: Guides can review the tourist's proposed itinerary and respond with a professional fee quote in either USD or LKR.
+- Direct Messaging: Integrated within the engagement queue is a real-time messaging interface, allowing both parties to negotiate terms, ask questions, and finalize details before the quote is formally accepted.
+
+### Dynamic Dashboard Analytics
+- The dashboard aggregates real-time statistics tailored to the user. Guides can monitor their pending vs. accepted request ratios, while tourists can track their total itineraries and accumulated experience points within the platform.
+
+## Local Development Setup
+
+To run this frontend application locally, ensure you have Node.js (version 16 or higher) installed on your system.
+
+1. Navigate into the client directory:
    cd client
-   ```
 
-2. **Install dependencies:**
-   ```bash
+2. Install the necessary node modules and dependencies:
    npm install
-   ```
 
-3. **Setup environment variables:**
-   ```bash
-   cp .env.example .env.local
-   ```
-   Edit `.env.local` and set your API URL (default: http://localhost:5000)
-
-4. **Start the development server:**
-   ```bash
+3. Start the Webpack development server:
    npm start
-   ```
-   The app will open at http://localhost:3000
 
-## Development
+The application will automatically open in your default web browser at http://localhost:3000. Hot-reloading is enabled by default, meaning any changes made to the source code will immediately reflect in the browser without requiring a manual refresh.
 
-### Running Tests
-```bash
-npm test
-```
+## Folder Structure Breakdown
 
-### Building for Production
-```bash
-npm run build
-```
+- /src/components: Contains isolated, reusable UI components such as navigation bars, destination cards, modal overlays, and form inputs.
+- /src/pages: Contains the primary route views, including DashboardPage.js, ItineraryPage.js, ClientsPage.js, and AuthPages.
+- /src/services: The data layer of the frontend. This directory contains Axios service classes that handle all outgoing HTTP requests to the backend Node.js server.
+- /src/context: Houses the React Context providers (AuthContext, PlaceContext) responsible for managing persistent global state.
+- /public: Contains the core index.html file, favicons, and static assets that do not require Webpack processing.
 
-### Code Structure Patterns
+## Technical Stack
 
-#### Authentication Context
-```javascript
-import { useAuth } from '../context/AuthContext';
+- Framework: React.js (utilizing Functional Components and Hooks)
+- Routing: React Router v6
+- HTTP Client: Axios
+- Maps & Routing: React-Leaflet, Leaflet.js, GraphHopper API
+- Styling: Vanilla CSS with custom CSS variables for design tokens and theme toggling (Dark/Light mode)
 
-function MyComponent() {
-  const { user, login, logout, isAuthenticated } = useAuth();
-  // Use auth state and methods
-}
-```
+## API Communication Notes
 
-#### Using Place Context
-```javascript
-import { usePlace } from '../context/PlaceContext';
+This frontend application is designed to function alongside the Smart Tourism backend API. By default, the Axios services in this repository are configured to send requests to http://localhost:5000. 
 
-function MyComponent() {
-  const { 
-    places, 
-    searchPlaces, 
-    filterPlacesByLocation 
-  } = usePlace();
-  // Use place data and filtering methods
-}
-```
+If you encounter network errors or "Failed to fetch" warnings, ensure that the backend Node.js server is actively running on your local machine before attempting to log in, fetch places, or submit booking requests.
 
-#### API Service Calls
-```javascript
-import { placeService, itineraryService } from '../services';
-
-// Get all places
-const response = await placeService.getAllPlaces();
-
-// Search places
-const results = await placeService.searchPlaces('beach');
-
-// Get user itineraries
-const itineraries = await itineraryService.getUserItineraries();
-```
-
-## Search Algorithm Implementation
-
-### 1. **Text Search**
-- Case-insensitive substring matching
-- Searches name, description, and category fields
-- Located in `PlaceContext.searchPlaces()`
-
-```javascript
-const searchPlaces = (query) => {
-  const lowerQuery = query.toLowerCase();
-  return places.filter(place => 
-    place.name.toLowerCase().includes(lowerQuery) ||
-    place.description.toLowerCase().includes(lowerQuery)
-  );
-};
-```
-
-### 2. **Location-Based Search (Haversine Formula)**
-- Calculates distance between user location and places
-- Filters places within specified radius
-- Located in `PlaceContext.filterPlacesByLocation()`
-
-```javascript
-const filterPlacesByLocation = (latitude, longitude, distanceKm = 10) => {
-  // Uses Haversine formula for accurate distance calculation
-  // Returns places within distanceKm
-};
-```
-
-## API Endpoints Used
-
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - User login
-
-### Places
-- `GET /api/places` - Get all places
-- `GET /api/places/:id` - Get place details
-- `POST /api/places` - Create new place (admin)
-- `PUT /api/places/:id` - Update place (admin)
-- `DELETE /api/places/:id` - Delete place (admin)
-- `GET /api/places/search?q=query` - Search places
-- `GET /api/places/nearby?latitude=X&longitude=Y&distance=Z` - Location search
-
-### Travel Guides
-- `GET /api/guides` - Get all guides
-- `GET /api/guides/:id` - Get guide details
-- `GET /api/guides/:id/portfolio` - Get guide portfolio
-- `POST /api/guides/:id/rate` - Rate a guide
-
-### Itineraries
-- `GET /api/itineraries` - Get user's itineraries
-- `GET /api/itineraries/:id` - Get itinerary details
-- `POST /api/itineraries` - Create new itinerary
-- `PUT /api/itineraries/:id` - Update itinerary
-- `DELETE /api/itineraries/:id` - Delete itinerary
-- `POST /api/itineraries/:id/places` - Add place to itinerary
-- `DELETE /api/itineraries/:id/places/:placeId` - Remove place from itinerary
-- `PUT /api/itineraries/:id/reorder` - Reorder places
-
-### Reviews
-- `GET /api/places/:id/reviews` - Get place reviews
-- `POST /api/places/:id/reviews` - Submit review
-- `PUT /api/reviews/:id` - Update review
-- `DELETE /api/reviews/:id` - Delete review
-
-### Profile
-- `GET /api/profile` - Get user profile
-- `PUT /api/profile` - Update user profile
-- `GET /api/profiles/:userId` - Get user profile by ID
-
-### System
-- `GET /api/system/status` - Get system status
-
-## Styling
-
-The application uses:
-- **CSS Grid & Flexbox** for layouts
-- **Material Design principles** for UI
-- **Responsive design** for mobile compatibility
-- **Color Scheme**: Purple gradient (#667eea to #764ba2) with neutral grays
-
-### Key Global Classes
-- `.btn`, `.btn-primary`, `.btn-success`, `.btn-danger` - Button styles
-- `.card` - Card container
-- `.container` - Max-width container
-- `.grid`, `.grid-cols-2`, `.grid-cols-3` - Grid layouts
-- `.error`, `.success` - Alert messages
-
-## Performance Optimization
-
-1. **Code Splitting** - Route-based lazy loading ready
-2. **Memoization** - useCallback in contexts for optimized re-renders
-3. **Local Storage** - Persistent authentication state
-4. **Axios Interceptors** - Automatic token injection and error handling
-
-## Security Features
-
-1. **JWT Token Management** - Tokens stored in localStorage
-2. **Protected Routes** - Authentication required for certain pages
-3. **CORS Configuration** - Server configured for frontend domain
-4. **Input Validation** - Form validation on client side
-5. **Password Security** - Backend uses bcrypt hashing
-
-## Future Enhancements
-
-1. **Drag-and-Drop Itinerary Reordering**
-2. **Real-time Notifications**
-3. **Map Integration** (Google Maps/Mapbox)
-4. **Photo Uploads**
-5. **Social Features** (Follow guides, share itineraries)
-6. **Payment Integration**
-7. **Multi-language Support**
-8. **Dark Mode**
-9. **Progressive Web App (PWA)**
-10. **Offline Support**
-
-## Browser Support
-
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
-
-## Troubleshooting
-
-### API Connection Issues
-- Ensure backend server is running on port 5000
-- Check `.env.local` has correct API URL
-- Verify CORS headers in backend
-
-### Authentication Errors
-- Clear browser localStorage and retry login
-- Check token expiration in dev tools
-- Verify email format matches server validation
-
-### Performance Issues
-- Clear node_modules and reinstall: `rm -rf node_modules && npm install`
-- Check Network tab in DevTools for slow requests
-- Consider implementing code splitting
-
-## Contributing
-
-1. Follow the existing component structure
-2. Use hooks and functional components
-3. Implement proper error handling
-4. Add comments for complex logic
-5. Test responsive design
 
 ## License
 
