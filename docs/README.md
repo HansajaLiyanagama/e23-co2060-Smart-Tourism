@@ -4,7 +4,7 @@ permalink: index.html
 
 # Please update this with your repository name and project title
 repository-name: e23-co2060-Smart-Tourism
-title: Project Template
+title: Smart Tourism
 ---
 
 [comment]: # "This is the standard layout for the project, but you can clean this and use your own template, and add more information required for your own project"
