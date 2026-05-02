@@ -38,7 +38,7 @@ A HTML template integrated with the given GitHub repository templates, based on 
 #### Table of Contents
 1. [Introduction](#introduction)
 2. [Solution Architecture](#solution-architecture )
-3. [Software Designs](#solution-architecture)
+3. [Software Designs](#software-designs)
 4. [Testing](#testing)
 5. [Conclusion](#conclusion)
 6. [Links](#links)
