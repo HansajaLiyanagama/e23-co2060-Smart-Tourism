@@ -40,20 +40,26 @@ const getUserProfile = async (userId) => {
         }
 
         const role = userRole.rows[0].role;
-
+        let query = '';
+        
         if (role === 'guide') {
-            const result = await db.query(
-                'SELECT * FROM guide_profiles WHERE user_id = $1',
-                [userId]
-            );
-            return result.rows[0];
+            query = `
+                SELECT u.created_at as joined_at, u.email, gp.* 
+                FROM users u
+                LEFT JOIN guide_profiles gp ON u.id = gp.user_id
+                WHERE u.id = $1
+            `;
         } else {
-            const result = await db.query(
-                'SELECT * FROM tourist_profiles WHERE user_id = $1',
-                [userId]
-            );
-            return result.rows[0];
+            query = `
+                SELECT u.created_at as joined_at, u.email, tp.* 
+                FROM users u
+                LEFT JOIN tourist_profiles tp ON u.id = tp.user_id
+                WHERE u.id = $1
+            `;
         }
+
+        const result = await db.query(query, [userId]);
+        return result.rows[0];
     } catch (error) {
         console.error('Error fetching profile:', error);
         throw error;
@@ -229,6 +235,51 @@ const findGuidesByLocations = async (locationNames) => {
     }
 };
 
+// Delete user account and all related data (cascade delete due to foreign key constraints)
+const deleteUser = async (userId) => {
+    try {
+        const query = `DELETE FROM users WHERE id = $1 RETURNING id`;
+        const result = await db.query(query, [userId]);
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        throw error;
+    }
+};
+
+// Get dashboard stats for a user
+const getUserStats = async (userId) => {
+    try {
+        // Count itineraries
+        const itinerariesRes = await db.query(
+            'SELECT COUNT(*) FROM itineraries WHERE tourist_id = $1',
+            [userId]
+        );
+        
+        // Count reviews
+        const reviewsRes = await db.query(
+            'SELECT COUNT(*) FROM place_reviews WHERE tourist_id = $1',
+            [userId]
+        );
+
+        // Experience Points (XP) Calculation: 
+        // 50 XP per itinerary, 20 XP per review
+        const itineraryCount = parseInt(itinerariesRes.rows[0].count);
+        const reviewCount = parseInt(reviewsRes.rows[0].count);
+        const xp = (itineraryCount * 50) + (reviewCount * 20);
+
+        return {
+            itineraries: itineraryCount,
+            reviews: reviewCount,
+            savedPlaces: 0, // Placeholder
+            xp: xp || 0
+        };
+    } catch (error) {
+        console.error('Error fetching user stats:', error);
+        throw error;
+    }
+};
+
 module.exports = { 
     findUserByEmail, 
     createUser,
@@ -238,5 +289,7 @@ module.exports = {
     updateGuideProfile,
     getAllGuides,
     suggestGuidesForItinerary,
-    findGuidesByLocations
+    findGuidesByLocations,
+    deleteUser,
+    getUserStats
 };

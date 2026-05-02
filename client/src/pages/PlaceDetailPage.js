@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { usePlace } from '../context/PlaceContext';
 import { useAuth } from '../context/AuthContext';
 import ReviewForm from '../components/ReviewForm';
 import { reviewService } from '../services';
+import { FaMapMarkerAlt, FaPlus, FaStar, FaTimes, FaUser, FaCommentDots } from 'react-icons/fa';
 import './PlaceDetailPage.css';
 
 const PlaceDetailPage = () => {
@@ -11,10 +12,42 @@ const PlaceDetailPage = () => {
   const { getPlaceById, loading: placesLoading } = usePlace();
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [place, setPlace] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [imageUrl, setImageUrl] = useState(location.state?.passedImageUrl || null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+
+  useEffect(() => {
+    if (place) {
+      // If we didn't get a passed image from navigation state, fetch one
+      if (!imageUrl) {
+        if (!place.image_url || place.image_url.includes('unsplash.com')) {
+          const fetchWikiImage = async () => {
+            try {
+              // Increased pithumbsize to 2000 for high-resolution hero impact
+              const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(place.name)}&prop=pageimages&format=json&pithumbsize=2000&origin=*`);
+              const data = await res.json();
+              const pages = data.query.pages;
+              const pageId = Object.keys(pages)[0];
+              if (pageId !== "-1" && pages[pageId].thumbnail) {
+                setImageUrl(pages[pageId].thumbnail.source);
+              } else {
+                setImageUrl('https://images.unsplash.com/photo-1529253355930-ddbe423a2ac7?ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80');
+              }
+            } catch (err) {
+              console.error('Wiki fetch error:', err);
+            }
+          };
+          fetchWikiImage();
+        } else {
+          setImageUrl(place.image_url);
+        }
+      }
+    }
+  }, [place, imageUrl]);
 
   const fetchReviews = useCallback(async () => {
     try {
@@ -82,30 +115,57 @@ const PlaceDetailPage = () => {
           ← Back to Places
         </button>
 
-        <div className="place-detail-header">
-          {place.image_url && (
-            <div className="place-hero-image">
-              <img src={place.image_url} alt={place.name} />
+        <div className="place-detail-main">
+          {imageUrl && (
+            <div className="place-side-image">
+              <img src={imageUrl} alt={place.name} />
             </div>
           )}
-        </div>
 
-        <div className="place-detail-content">
           <div className="place-info">
             <h1>{place.name}</h1>
             
-            {place.category && (
-              <span className="category-badge">{place.category}</span>
-            )}
-
-            {place.rating && (
-              <p className="rating-display">⭐ Rating: {parseFloat(place.rating).toFixed(1)}/5</p>
-            )}
+            <div className="place-badges">
+              {place.category && (
+                <span className="category-badge">{place.category}</span>
+              )}
+              {place.rating && (
+                <span className="rating-badge">⭐ {parseFloat(place.rating).toFixed(1)}</span>
+              )}
+              <button 
+                onClick={() => navigate('/itinerary?add=' + place.id)}
+                className="itinerary-badge"
+              >
+                <FaPlus /> Add to Itinerary
+              </button>
+              <button 
+                onClick={() => isAuthenticated() ? setShowReviewModal(true) : navigate('/login')}
+                className="review-badge-btn"
+                style={{
+                  padding: '6px 16px',
+                  borderRadius: '999px',
+                  fontSize: '0.85rem',
+                  fontWeight: '700',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.03em',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  backgroundColor: '#6366f1',
+                  color: 'white',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              >
+                <FaStar /> Add Review
+              </button>
+            </div>
 
             <div className="place-meta">
               {place.latitude && place.longitude && (
-                <p>
-                  📍 <strong>Location:</strong> {parseFloat(place.latitude).toFixed(4)}, {parseFloat(place.longitude).toFixed(4)}
+                <p className="location-text">
+                  <FaMapMarkerAlt /> <strong>Location:</strong> {parseFloat(place.latitude).toFixed(4)}, {parseFloat(place.longitude).toFixed(4)}
                 </p>
               )}
             </div>
@@ -114,31 +174,13 @@ const PlaceDetailPage = () => {
               <h2>About this Place</h2>
               <p>{place.description}</p>
             </div>
-
-            <button 
-              onClick={() => navigate('/itinerary?add=' + place.id)}
-              className="btn btn-success btn-large"
-            >
-              Add to My Itinerary
-            </button>
           </div>
+        </div>
 
+        <div className="place-detail-content">
           {/* Reviews Section */}
           <div className="reviews-section">
-            <h2>Visitor Reviews</h2>
-
-            {isAuthenticated() && (
-              <ReviewForm onSubmit={handleReviewSubmit} />
-            )}
-
-            {!isAuthenticated() && (
-              <div className="login-prompt">
-                <p>Please login to leave a review</p>
-                <button onClick={() => navigate('/login')} className="btn btn-primary">
-                  Login
-                </button>
-              </div>
-            )}
+            <h2><FaCommentDots style={{ color: 'var(--primary)' }} /> Visitor Reviews</h2>
 
             <div className="reviews-list">
               {reviewsLoading ? (
@@ -148,12 +190,18 @@ const PlaceDetailPage = () => {
                   <div key={review.id} className="review-item">
                     <div className="review-header">
                       <strong>{review.title}</strong>
-                      <span className="review-rating">⭐ {review.rating}/5</span>
+                      <span className="review-rating"><FaStar /> {review.rating}/5</span>
                     </div>
                     <p className="review-text">{review.comment}</p>
-                    <small className="review-meta">
-                      By {review.user_email} on {new Date(review.created_at).toLocaleDateString()}
-                    </small>
+                    <div className="review-meta-container">
+                      <div className="review-avatar">
+                        <FaUser />
+                      </div>
+                      <div className="review-info">
+                        <span className="review-author">{review.tourist_name || review.user_email?.split('@')[0] || 'Anonymous'}</span>
+                        <span className="review-date">{new Date(review.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                      </div>
+                    </div>
                   </div>
                 ))
               ) : (
@@ -163,6 +211,26 @@ const PlaceDetailPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Review Modal */}
+      {showReviewModal && (
+        <div className="review-modal-overlay" onClick={() => setShowReviewModal(false)}>
+          <div className="review-modal-content" onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={() => setShowReviewModal(false)}>
+              <FaTimes />
+            </button>
+            <ReviewForm 
+              onSubmit={async (data) => {
+                const res = await handleReviewSubmit(data);
+                if (res.success) {
+                  setShowReviewModal(false);
+                }
+                return res;
+              }} 
+            />
+          </div>
+        </div>
+      )}
     </main>
   );
 };

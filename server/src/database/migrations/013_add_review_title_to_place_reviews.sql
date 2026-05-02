@@ -1,2 +1,0 @@
-ALTER TABLE place_reviews
-ADD COLUMN IF NOT EXISTS title TEXT;

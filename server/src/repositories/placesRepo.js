@@ -145,9 +145,11 @@ async function getPlaceReviews(placeId) {
                    pr.created_at,
                    pr.title,
                    u.email as user_email,
-                   u.id as user_id
+                   u.id as user_id,
+                   tp.full_name as tourist_name
             FROM place_reviews pr
             JOIN users u ON pr.tourist_id = u.id
+            LEFT JOIN tourist_profiles tp ON pr.tourist_id = tp.user_id
             WHERE pr.place_id = $1
             ORDER BY pr.created_at DESC
         ` : `
@@ -156,9 +158,11 @@ async function getPlaceReviews(placeId) {
                    pr.comment,
                    pr.created_at,
                    u.email as user_email,
-                   u.id as user_id
+                   u.id as user_id,
+                   tp.full_name as tourist_name
             FROM place_reviews pr
             JOIN users u ON pr.tourist_id = u.id
+            LEFT JOIN tourist_profiles tp ON pr.tourist_id = tp.user_id
             WHERE pr.place_id = $1
             ORDER BY pr.created_at DESC
         `;
@@ -175,13 +179,25 @@ async function createPlaceReview(placeId, touristId, rating, title, comment) {
     try {
         const includeTitle = await hasPlaceReviewTitleColumn();
         const query = includeTitle ? `
-            INSERT INTO place_reviews (place_id, tourist_id, rating, title, comment)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING id, place_id, tourist_id, rating, title, comment, created_at
+            WITH inserted AS (
+                INSERT INTO place_reviews (place_id, tourist_id, rating, title, comment)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING *
+            )
+            SELECT i.*, u.email as user_email, tp.full_name as tourist_name
+            FROM inserted i
+            JOIN users u ON i.tourist_id = u.id
+            LEFT JOIN tourist_profiles tp ON i.tourist_id = tp.user_id
         ` : `
-            INSERT INTO place_reviews (place_id, tourist_id, rating, comment)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id, place_id, tourist_id, rating, comment, created_at
+            WITH inserted AS (
+                INSERT INTO place_reviews (place_id, tourist_id, rating, comment)
+                VALUES ($1, $2, $3, $4)
+                RETURNING *
+            )
+            SELECT i.*, u.email as user_email, tp.full_name as tourist_name
+            FROM inserted i
+            JOIN users u ON i.tourist_id = u.id
+            LEFT JOIN tourist_profiles tp ON i.tourist_id = tp.user_id
         `;
 
         const params = includeTitle
@@ -195,9 +211,15 @@ async function createPlaceReview(placeId, touristId, rating, title, comment) {
             console.warn('Title column missing; retrying insert without title');
             placeReviewTitleColumnExists = false;
             const retryQuery = `
-                INSERT INTO place_reviews (place_id, tourist_id, rating, comment)
-                VALUES ($1, $2, $3, $4)
-                RETURNING id, place_id, tourist_id, rating, comment, created_at
+                WITH inserted AS (
+                    INSERT INTO place_reviews (place_id, tourist_id, rating, comment)
+                    VALUES ($1, $2, $3, $4)
+                    RETURNING *
+                )
+                SELECT i.*, u.email as user_email, tp.full_name as tourist_name
+                FROM inserted i
+                JOIN users u ON i.tourist_id = u.id
+                LEFT JOIN tourist_profiles tp ON i.tourist_id = tp.user_id
             `;
             const result = await db.query(retryQuery, [placeId, touristId, rating, comment]);
             return result.rows[0];

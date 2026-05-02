@@ -121,7 +121,8 @@
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
     "db:migrate": "node src/database/runMigrations.js",
-    "db:seed": "node src/database/seedData.js"
+    "db:seed": "node src/database/seedData.js",
+    "db:reset": "node src/database/resetDb.js"
   },
   "keywords": [],
   "author": "",

@@ -53,7 +53,7 @@ export const bookingService = {
   createBooking: (data) => API.post('/api/bookings', data),
   getGuideBookings: (guideId) => API.get(`/api/bookings/guide/${guideId}`),
   getTouristBookings: (touristId) => API.get(`/api/bookings/tourist/${touristId}`),
-  quotePrice: (bookingId, price) => API.put(`/api/bookings/${bookingId}/quote`, { price }),
+  quotePrice: (bookingId, price, currency) => API.put(`/api/bookings/${bookingId}/quote`, { price, currency }),
   acceptQuote: (bookingId) => API.put(`/api/bookings/${bookingId}/accept`),
   rejectQuote: (bookingId) => API.put(`/api/bookings/${bookingId}/reject`),
   cancelBooking: (bookingId, data = {}) => API.put(`/api/bookings/${bookingId}/cancel`, data),
@@ -87,8 +87,14 @@ export const profileService = {
     return API.post(`/api/users/${userId}/profile`, data);
   },
 
+  // Delete user account permanently
+  deleteAccount: (userId) => API.delete(`/api/users/${userId}/account`),
+
   // legacy helper if you ever need to fetch by profile id directly
-  getProfileById: (userId) => API.get(`/api/profiles/${userId}`)
+  getProfileById: (userId) => API.get(`/api/profiles/${userId}`),
+
+  // Get dashboard statistics for a user
+  getUserStats: (userId) => API.get(`/api/users/${userId}/stats`)
 };
 
 // System Services

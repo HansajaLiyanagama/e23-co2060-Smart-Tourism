@@ -105,8 +105,58 @@ async function updateGuideProfile(req, res) {
     }
 }
 
+/**
+ * DELETE /api/users/:id/account
+ * Permanently delete user account and all related data
+ */
+async function deleteAccount(req, res) {
+    try {
+        const { id } = req.params;
+        const token = req.headers.authorization?.split(' ')[1];
+        
+        if (!token) {
+            return res.status(401).json({ error: 'No authorization token provided' });
+        }
+
+        // Delete the user
+        const deletedUser = await userRepo.deleteUser(id);
+
+        if (!deletedUser) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Account and all associated data have been permanently deleted'
+        });
+    } catch (error) {
+        console.error('Error deleting account:', error);
+        res.status(500).json({ error: 'Failed to delete account' });
+    }
+}
+
+/**
+ * GET /api/users/:id/stats
+ * Fetch dashboard statistics for a user
+ */
+async function getUserStats(req, res) {
+    try {
+        const { id } = req.params;
+        const stats = await userRepo.getUserStats(id);
+        res.status(200).json({
+            success: true,
+            stats
+        });
+    } catch (error) {
+        console.error('Error fetching user stats:', error);
+        res.status(500).json({ error: 'Failed to fetch dashboard stats' });
+    }
+}
+
 module.exports = {
     getUserProfile,
     updateTouristProfile,
-    updateGuideProfile
+    updateGuideProfile,
+    deleteAccount,
+    getUserStats
 };
