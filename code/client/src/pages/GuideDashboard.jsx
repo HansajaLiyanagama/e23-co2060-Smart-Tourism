@@ -15,7 +15,7 @@ function GuideDashboard() {
   const [routePath, setRoutePath] = useState([]);
   
   // ⚠️ IMPORTANT: Paste your real GraphHopper API key here to fix the missing blue line!
-  const GRAPHHOPPER_API_KEY = 'YOUR_GRAPHHOPPER_API_KEY';
+  const GRAPHHOPPER_API_KEY = '10158308-2bc5-45d0-ace1-cfced11f2650';
 
   useEffect(() => {
     fetchRequests();
