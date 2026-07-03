@@ -49,7 +49,7 @@ function Home() {
 
   const fetchPlaces = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/places');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/places`);
       const data = await response.json();
       if (response.ok) setPlaces(data);
     } catch (error) {
