@@ -23,7 +23,7 @@ function GuideDashboard() {
 
   const fetchRequests = async () => {
     const token = localStorage.getItem('token');
-    const res = await fetch('http://localhost:5000/api/requests/guide', {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/requests/guide`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
@@ -56,7 +56,7 @@ function GuideDashboard() {
     const token = localStorage.getItem('token');
     
     try {
-      const res = await fetch(`http://localhost:5000/api/requests/${requestId}/status`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/requests/${requestId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

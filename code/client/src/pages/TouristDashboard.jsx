@@ -47,7 +47,7 @@ function TouristDashboard() {
 
       // 1. Fetch Places
       try {
-        const placesRes = await fetch('http://localhost:5000/api/places');
+        const placesRes = await fetch(`${import.meta.env.VITE_API_URL}/api/places`);
         const placesData = await placesRes.json();
         if (placesRes.ok) {
           setAllPlaces(placesData);
@@ -57,7 +57,7 @@ function TouristDashboard() {
 
       // 2. Fetch Guides
       try {
-        const guidesRes = await fetch('http://localhost:5000/api/guide/all', { 
+        const guidesRes = await fetch(`${import.meta.env.VITE_API_URL}/api/guide/all`, { 
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const guidesData = await guidesRes.json();
@@ -69,7 +69,7 @@ function TouristDashboard() {
 
       // 3. Fetch My Bookings
       try {
-        const requestsRes = await fetch('http://localhost:5000/api/requests/tourist', { 
+        const requestsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/requests/tourist`, { 
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const requestsData = await requestsRes.json();
@@ -148,7 +148,7 @@ function TouristDashboard() {
     const placeIds = selectedLocations.map(loc => loc.id);
 
     try {
-      const response = await fetch('http://localhost:5000/api/itineraries/create', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/itineraries/create`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json', 
@@ -186,7 +186,7 @@ function TouristDashboard() {
 
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch('http://localhost:5000/api/requests/create', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/requests/create`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json', 
