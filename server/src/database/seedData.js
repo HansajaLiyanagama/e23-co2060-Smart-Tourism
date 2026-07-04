@@ -118,7 +118,7 @@ const samplePlaces = [
         latitude: 7.8674,
         longitude: 80.6596,
         category: 'Religious',
-        image_url: 'https://images.unsplash.com/photo-1548013146-72479768bada?w=600&h=400'
+        image_url: 'https://images.unsplash.com/photo-1588598136830-df33f389daeb?auto=format&fit=crop&w=600&h=400&q=80'
     },
     {
         name: 'Peradeniya Botanical Gardens',
@@ -142,7 +142,7 @@ const samplePlaces = [
         latitude: 6.8475,
         longitude: 80.7662,
         category: 'Beach',
-        image_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=400'
+        image_url: 'https://images.unsplash.com/photo-1711993412530-bc6689d7b420?auto=format&fit=crop&w=600&h=400&q=80'
     },
     {
         name: 'Uda Walawe National Park',
@@ -240,7 +240,7 @@ async function seedDatabase() {
                 VALUES ($1, $2, $3, $4, $5, $6)
                 ON CONFLICT (name) DO NOTHING
             `;
-            
+
             await db.query(query, [
                 place.name,
                 place.description,
@@ -259,7 +259,7 @@ async function seedDatabase() {
             // 1. Create User
             const saltRounds = 10;
             const passwordHash = await bcrypt.hash(guide.password, saltRounds);
-            
+
             const userResult = await db.query(
                 `INSERT INTO users (email, password_hash, role) 
                  VALUES ($1, $2, 'guide') 
@@ -267,7 +267,7 @@ async function seedDatabase() {
                  RETURNING id`,
                 [guide.email, passwordHash]
             );
-            
+
             const userId = userResult.rows[0].id;
 
             // 2. Create Guide Profile
@@ -280,7 +280,7 @@ async function seedDatabase() {
                     contact_number = $6, profile_image_url = $7, specialization = $8,
                     experience_years = $9, languages = $10, covered_locations = $11, is_approved = TRUE
             `;
-            
+
             await db.query(profileQuery, [
                 userId, guide.full_name, guide.bio, guide.license_number, guide.hourly_rate,
                 guide.contact_number, guide.profile_image_url, guide.specialization,
