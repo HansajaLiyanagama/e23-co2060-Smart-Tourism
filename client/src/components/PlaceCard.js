@@ -6,8 +6,8 @@ const PlaceCard = ({ place, onViewDetails, onAddToItinerary }) => {
   const [imageUrl, setImageUrl] = useState(place.image_url);
 
   useEffect(() => {
-    // Automatically fetch a real image from Wikipedia if missing or if it's the hardcoded Unsplash placeholder
-    if (!place.image_url || place.image_url.includes('unsplash.com')) {
+    // Automatically fetch a real image from Wikipedia if missing
+    if (!place.image_url) {
       const fetchWikiImage = async () => {
         try {
           const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(place.name)}&prop=pageimages&format=json&pithumbsize=800&origin=*`);
