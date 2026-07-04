@@ -118,7 +118,7 @@ const samplePlaces = [
         latitude: 7.8674,
         longitude: 80.6596,
         category: 'Religious',
-        image_url: 'https://images.unsplash.com/photo-1588598136830-df33f389daeb?auto=format&fit=crop&w=600&h=400&q=80'
+        image_url: 'https://www.travelmapsrilanka.com/destinations/destinationimages/dambulla-cave-temple.webp'
     },
     {
         name: 'Peradeniya Botanical Gardens',
@@ -142,7 +142,7 @@ const samplePlaces = [
         latitude: 6.8475,
         longitude: 80.7662,
         category: 'Beach',
-        image_url: 'https://images.unsplash.com/photo-1711993412530-bc6689d7b420?auto=format&fit=crop&w=600&h=400&q=80'
+        image_url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSl9nNzK-D7WepYIGfIT2AeKf8CYJg3HEvoFKYGIHzCwA&s=10'
     },
     {
         name: 'Uda Walawe National Park',
