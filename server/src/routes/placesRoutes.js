@@ -19,6 +19,7 @@ router.get('/', placesController.getPlaces);
 
 router.get('/:id/reviews', placesController.getPlaceReviews);
 router.post('/:id/reviews', placesController.createPlaceReview);
+router.delete('/:id/reviews/:reviewId', placesController.deletePlaceReview);
 
 /**
  * GET /api/places/:id

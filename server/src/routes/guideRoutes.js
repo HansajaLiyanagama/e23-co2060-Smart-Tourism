@@ -16,4 +16,9 @@ router.get('/suggest/:itineraryId', guideController.suggestGuidesForItinerary);
 // Get guide by ID
 router.get('/:id', guideController.getGuideById);
 
+// Guide Reviews
+router.get('/:id/reviews', guideController.getGuideReviews);
+router.post('/:id/reviews', guideController.createGuideReview);
+router.delete('/:id/reviews/:reviewId', guideController.deleteGuideReview);
+
 module.exports = router;

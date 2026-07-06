@@ -127,14 +127,15 @@ async function getTouristBookings(touristId) {
     }
 }
 
-async function updateBookingStatus(bookingId, status, price = null) {
+async function updateBookingStatus(bookingId, status, price = null, currency = 'LKR') {
     try {
         let query = `UPDATE bookings SET status = $1`;
         let params = [status, bookingId];
 
         if (price !== null) {
-            query += `, quoted_price = $3`;
+            query += `, quoted_price = $3, currency = $4`;
             params.push(price);
+            params.push(currency || 'LKR');
         }
 
         query += ` WHERE id = $2 RETURNING *`;
@@ -150,7 +151,7 @@ async function updateBookingStatus(bookingId, status, price = null) {
 async function getPendingGuideNotificationsCount(guideId) {
     try {
         const result = await db.query(
-            `SELECT COUNT(*) FROM bookings WHERE guide_id = $1 AND (status = 'pending' OR status = 'accepted')`,
+            `SELECT COUNT(*) FROM bookings WHERE guide_id = $1 AND status = 'pending'`,
             [guideId]
         );
         return parseInt(result.rows[0].count);

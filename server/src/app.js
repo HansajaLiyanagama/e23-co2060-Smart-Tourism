@@ -9,6 +9,7 @@ const userRoutes = require('./routes/userRoutes');
 const itinerariesRoutes = require('./routes/itinerariesRoutes');
 const guideRoutes = require('./routes/guideRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 app.use(cors());
@@ -21,6 +22,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/itineraries', itinerariesRoutes);
 app.use('/api/guides', guideRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/admin', adminRoutes);
 
 async function startServer() {
     try {

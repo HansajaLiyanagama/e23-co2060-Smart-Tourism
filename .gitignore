@@ -1,19 +1,6 @@
-# --- SYSTEM & TOOLS ---
+node_modules/
+.env
 .DS_Store
-Thumbs.db
-.vscode/
-
-# --- FRONTEND (React/Vite) ---
-# This ignores the heavy library folder
-code/client/node_modules/
-# This ignores the production build folder
-code/client/dist/
-
-# --- BACKEND (Node/Express) ---
-# This ignores the heavy library folder
-code/server/node_modules/
-# This is the most important line for security:
-code/server/.env
-
-# --- MISC ---
+build/
+dist/
 *.log

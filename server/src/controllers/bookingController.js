@@ -78,15 +78,16 @@ async function getTouristBookings(req, res) {
 async function quotePrice(req, res) {
     try {
         const { id } = req.params;
-        const { price } = req.body;
+        const { price, currency } = req.body;
 
         if (!price) {
             return res.status(400).json({ error: 'Price is required' });
         }
 
-        const booking = await bookingRepo.updateBookingStatus(id, 'quoted', price);
+        const booking = await bookingRepo.updateBookingStatus(id, 'quoted', price, currency || 'LKR');
         res.status(200).json({ success: true, booking });
     } catch (error) {
+        console.error('Error quoting price:', error);
         res.status(500).json({ error: 'Failed to quote price' });
     }
 }

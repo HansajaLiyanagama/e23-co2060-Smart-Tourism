@@ -131,10 +131,24 @@ async function createPlaceReview(req, res) {
         res.status(500).json({ success: false, error: 'Failed to submit review' });
     }
 }
+async function deletePlaceReview(req, res) {
+    try {
+        const { reviewId } = req.params;
+        const result = await placesRepo.deletePlaceReview(parseInt(reviewId));
+        if (!result) {
+            return res.status(404).json({ success: false, error: 'Review not found' });
+        }
+        res.status(200).json({ success: true, message: 'Review deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting place review:', error);
+        res.status(500).json({ success: false, error: 'Failed to delete review' });
+    }
+}
 
 module.exports = {
     getPlaces,
     getPlaceDetail,
     getPlaceReviews,
-    createPlaceReview
+    createPlaceReview,
+    deletePlaceReview
 };

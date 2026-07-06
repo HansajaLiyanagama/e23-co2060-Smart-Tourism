@@ -40,20 +40,26 @@ const getUserProfile = async (userId) => {
         }
 
         const role = userRole.rows[0].role;
-
+        let query = '';
+        
         if (role === 'guide') {
-            const result = await db.query(
-                'SELECT * FROM guide_profiles WHERE user_id = $1',
-                [userId]
-            );
-            return result.rows[0];
+            query = `
+                SELECT u.created_at as joined_at, u.email, gp.* 
+                FROM users u
+                LEFT JOIN guide_profiles gp ON u.id = gp.user_id
+                WHERE u.id = $1
+            `;
         } else {
-            const result = await db.query(
-                'SELECT * FROM tourist_profiles WHERE user_id = $1',
-                [userId]
-            );
-            return result.rows[0];
+            query = `
+                SELECT u.created_at as joined_at, u.email, tp.* 
+                FROM users u
+                LEFT JOIN tourist_profiles tp ON u.id = tp.user_id
+                WHERE u.id = $1
+            `;
         }
+
+        const result = await db.query(query, [userId]);
+        return result.rows[0];
     } catch (error) {
         console.error('Error fetching profile:', error);
         throw error;
@@ -61,14 +67,14 @@ const getUserProfile = async (userId) => {
 };
 
 // Update or create tourist profile
-const updateTouristProfile = async (userId, fullName, nationality, contactNumber) => {
+const updateTouristProfile = async (userId, fullName, nationality, contactNumber, profileImageUrl) => {
     try {
         const result = await db.query(
-            `INSERT INTO tourist_profiles (user_id, full_name, nationality, contact_number)
-             VALUES ($1, $2, $3, $4)
-             ON CONFLICT (user_id) DO UPDATE SET full_name = $2, nationality = $3, contact_number = $4
+            `INSERT INTO tourist_profiles (user_id, full_name, nationality, contact_number, profile_image_url)
+             VALUES ($1, $2, $3, $4, $5)
+             ON CONFLICT (user_id) DO UPDATE SET full_name = $2, nationality = $3, contact_number = $4, profile_image_url = $5
              RETURNING *`,
-            [userId, fullName, nationality, contactNumber]
+            [userId, fullName, nationality, contactNumber, profileImageUrl]
         );
         return result.rows[0];
     } catch (error) {
@@ -108,10 +114,21 @@ const updateGuideProfile = async (userId, fullName, bio, licenseNumber, hourlyRa
 const getAllGuides = async () => {
     try {
         const query = `
-            SELECT gp.*, u.email 
+            SELECT 
+                gp.*, 
+                u.email,
+                COALESCE(AVG(gr.rating), 0) AS average_rating,
+                COUNT(gr.id) AS review_count
             FROM guide_profiles gp
             JOIN users u ON gp.user_id = u.id
+            LEFT JOIN guide_reviews gr ON gp.user_id = gr.guide_id
             WHERE u.role = 'guide'
+            GROUP BY gp.id, u.id
+            ORDER BY 
+                COUNT(gr.id) DESC,
+                average_rating DESC,
+                RANDOM()
+            LIMIT 20
         `;
         const result = await db.query(query);
         return result.rows;
@@ -229,6 +246,109 @@ const findGuidesByLocations = async (locationNames) => {
     }
 };
 
+// Delete user account and all related data (cascade delete due to foreign key constraints)
+const deleteUser = async (userId) => {
+    try {
+        const query = `DELETE FROM users WHERE id = $1 RETURNING id`;
+        const result = await db.query(query, [userId]);
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        throw error;
+    }
+};
+
+// Get dashboard stats for a user
+const getUserStats = async (userId) => {
+    try {
+        // Count itineraries
+        const itinerariesRes = await db.query(
+            'SELECT COUNT(*) FROM itineraries WHERE tourist_id = $1',
+            [userId]
+        );
+        
+        // Count reviews
+        const reviewsRes = await db.query(
+            'SELECT COUNT(*) FROM place_reviews WHERE tourist_id = $1',
+            [userId]
+        );
+
+        // Experience Points (XP) Calculation: 
+        // 50 XP per itinerary, 20 XP per review
+        const itineraryCount = parseInt(itinerariesRes.rows[0].count);
+        const reviewCount = parseInt(reviewsRes.rows[0].count);
+        const xp = (itineraryCount * 50) + (reviewCount * 20);
+
+        return {
+            itineraries: itineraryCount,
+            reviews: reviewCount,
+            savedPlaces: 0, // Placeholder
+            xp: xp || 0
+        };
+    } catch (error) {
+        console.error('Error fetching user stats:', error);
+        throw error;
+    }
+};
+
+// Get reviews for a guide
+const getGuideReviews = async (guideId) => {
+    try {
+        const query = `
+            SELECT gr.id,
+                   gr.rating,
+                   gr.comment,
+                   gr.created_at,
+                   u.email as user_email,
+                   u.id as user_id,
+                   tp.full_name as tourist_name
+            FROM guide_reviews gr
+            JOIN users u ON gr.tourist_id = u.id
+            LEFT JOIN tourist_profiles tp ON gr.tourist_id = tp.user_id
+            WHERE gr.guide_id = $1
+            ORDER BY gr.created_at DESC
+        `;
+        const result = await db.query(query, [guideId]);
+        return result.rows;
+    } catch (error) {
+        console.error('Error fetching guide reviews:', error);
+        throw error;
+    }
+};
+
+// Create a review for a guide
+const createGuideReview = async (guideId, touristId, rating, comment) => {
+    try {
+        const query = `
+            WITH inserted AS (
+                INSERT INTO guide_reviews (guide_id, tourist_id, rating, comment)
+                VALUES ($1, $2, $3, $4)
+                RETURNING *
+            )
+            SELECT i.*, u.email as user_email, tp.full_name as tourist_name
+            FROM inserted i
+            JOIN users u ON i.tourist_id = u.id
+            LEFT JOIN tourist_profiles tp ON i.tourist_id = tp.user_id
+        `;
+        const result = await db.query(query, [guideId, touristId, rating, comment]);
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error creating guide review:', error);
+        throw error;
+    }
+};
+
+const deleteGuideReview = async (reviewId) => {
+    try {
+        const query = 'DELETE FROM guide_reviews WHERE id = $1 RETURNING *';
+        const result = await db.query(query, [reviewId]);
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error deleting guide review:', error);
+        throw error;
+    }
+};
+
 module.exports = { 
     findUserByEmail, 
     createUser,
@@ -238,5 +358,10 @@ module.exports = {
     updateGuideProfile,
     getAllGuides,
     suggestGuidesForItinerary,
-    findGuidesByLocations
+    findGuidesByLocations,
+    deleteUser,
+    getUserStats,
+    getGuideReviews,
+    createGuideReview,
+    deleteGuideReview
 };
