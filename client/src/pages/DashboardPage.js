@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { profileService, systemService, bookingService, itineraryService, reviewService, placeService } from '../services';
+import { profileService, systemService, bookingService, itineraryService } from '../services';
 import { formatUserId } from '../utils/formatters';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import EditProfileModal from '../components/EditProfileModal';
@@ -14,10 +14,7 @@ import {
   FaSignOutAlt, 
   FaUserTie,
   FaBriefcase,
-  FaIdCard,
   FaHistory,
-  FaLanguage,
-  FaCamera,
   FaClock,
   FaCheckCircle,
   FaTrashAlt
@@ -26,7 +23,6 @@ import {
 const DashboardPage = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const editFormRef = useRef(null);
   const [systemStatus, setSystemStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

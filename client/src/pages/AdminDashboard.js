@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import API from '../services/api';
 import './AdminDashboard.css';
-import { FaTrash, FaUser, FaComments, FaMapMarkedAlt } from 'react-icons/fa';
+import { FaTrash } from 'react-icons/fa';
 import { formatUserId } from '../utils/formatters';
-import ChangePasswordModal from '../components/ChangePasswordModal';
 
 const AdminDashboard = () => {
   const [searchParams] = useSearchParams();
@@ -18,11 +17,7 @@ const AdminDashboard = () => {
   const [error, setError] = useState('');
   const [searchId, setSearchId] = useState('');
 
-  useEffect(() => {
-    fetchData(activeTab);
-  }, [activeTab, commentsSubTab]);
-
-  const fetchData = async (tab) => {
+  const fetchData = useCallback(async (tab) => {
     setLoading(true);
     setError('');
     try {
@@ -42,7 +37,11 @@ const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [commentsSubTab]);
+
+  useEffect(() => {
+    fetchData(activeTab);
+  }, [activeTab, fetchData]);
 
   const handleDelete = async (type, id) => {
     if (!window.confirm(`Are you sure you want to delete this ${type === 'comments' ? 'comment' : type.slice(0, -1)}?`)) return;

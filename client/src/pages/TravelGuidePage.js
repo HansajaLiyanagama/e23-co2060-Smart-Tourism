@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { guideService, bookingService } from '../services';
 import SearchBar from '../components/SearchBar';
 import ReviewSection from '../components/ReviewSection';
-import { FaAward, FaDollarSign, FaLanguage, FaHistory, FaCheckCircle, FaMapPin, FaTrophy, FaIdCard, FaPaperPlane, FaClipboardList, FaComments, FaStar } from 'react-icons/fa';
+import { FaHistory, FaCheckCircle, FaPaperPlane, FaClipboardList, FaComments, FaLanguage, FaIdCard, FaStar } from 'react-icons/fa';
 import { formatUserId } from '../utils/formatters';
 import './TravelGuidePage.css';
 

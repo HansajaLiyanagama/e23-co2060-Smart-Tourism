@@ -10,8 +10,8 @@ import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { 
   FaRoute, FaClock, FaMoneyBillWave, FaBullseye, FaSearch, 
-  FaTimes, FaCalendarAlt, FaPhone, FaImage, FaExclamationTriangle,
-  FaMapMarkerAlt, FaPlus, FaTrash, FaPaperPlane, FaChevronDown
+  FaTimes, FaCalendarAlt, FaPhone, FaExclamationTriangle,
+  FaPlus, FaPaperPlane, FaChevronDown
 } from 'react-icons/fa';
 import './ItineraryPage.css';
 

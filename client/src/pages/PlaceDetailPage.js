@@ -1,23 +1,21 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { usePlace } from '../context/PlaceContext';
 import { useAuth } from '../context/AuthContext';
 import ReviewSection from '../components/ReviewSection';
-import { FaMapMarkerAlt, FaPlus, FaStar, FaTimes, FaUser, FaCommentDots } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaPlus, FaStar } from 'react-icons/fa';
 import './PlaceDetailPage.css';
 
 const PlaceDetailPage = () => {
   const { id } = useParams();
   const { getPlaceById, loading: placesLoading } = usePlace();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [place, setPlace] = useState(null);
-  const [reviews, setReviews] = useState([]);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState(location.state?.passedImageUrl || null);
-  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [, setShowReviewModal] = useState(false);
 
   useEffect(() => {
     if (place) {

@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import API from '../services/api';
 import { bookingService } from '../services';
-import { FaMapMarkerAlt, FaCompass, FaUser, FaSignOutAlt, FaHome, FaMoon, FaSun, FaRoute, FaAtlas, FaBriefcase, FaComments, FaMapMarkedAlt } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaCompass, FaUser, FaSignOutAlt, FaHome, FaMoon, FaSun, FaAtlas, FaBriefcase, FaComments, FaMapMarkedAlt } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import './Navbar.css';
 
@@ -13,7 +12,6 @@ const Navbar = () => {
   const location = useLocation();
   const [notifications, setNotifications] = useState(0);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [hasCleared, setHasCleared] = useState(false);
 
 
   useEffect(() => {
@@ -49,7 +47,6 @@ const Navbar = () => {
 
       if (shouldSkipFetch) {
         setNotifications(0);
-        setHasCleared(true);
         return;
       }
 
